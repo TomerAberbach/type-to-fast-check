@@ -19,8 +19,9 @@ export type ConstantArbitrary = {
   value: unknown
 }
 
-export const constantArbitrary = (value: unknown): ConstantArbitrary =>
-  memoize({ type: `constant`, value })
+export const constantArbitrary = (
+  value: ConstantArbitrary[`value`],
+): ConstantArbitrary => memoize({ type: `constant`, value })
 
 export type OptionArbitrary = {
   type: `option`
@@ -28,10 +29,9 @@ export type OptionArbitrary = {
   nil: undefined | null
 }
 
-export const optionArbitrary = (props: {
-  arbitrary: Arbitrary
-  nil: undefined | null
-}): OptionArbitrary => memoize({ type: `option`, ...props })
+export const optionArbitrary = (
+  props: Pick<OptionArbitrary, `arbitrary` | `nil`>,
+): OptionArbitrary => memoize({ type: `option`, ...props })
 
 export type BooleanArbitrary = {
   type: `boolean`
@@ -70,7 +70,7 @@ export const symbolArbitrary = (): SymbolArbitrary =>
 
 export type RecordArbitrary = {
   type: `record`
-  properties: Record<
+  properties: Map<
     PropertyKey,
     {
       required: boolean
@@ -80,13 +80,7 @@ export type RecordArbitrary = {
 }
 
 export const recordArbitrary = (
-  properties: Record<
-    PropertyKey,
-    {
-      required: boolean
-      arbitrary: Arbitrary
-    }
-  >,
+  properties: RecordArbitrary[`properties`],
 ): RecordArbitrary => memoize({ type: `record`, properties })
 
 export type ObjectArbitrary = {
@@ -102,7 +96,7 @@ export type ConstantFromArbitrary = {
 }
 
 export const constantFromArbitrary = (
-  constants: unknown[],
+  constants: ConstantFromArbitrary[`constants`],
 ): ConstantFromArbitrary => memoize({ type: `constantFrom`, constants })
 
 export type OneofArbitrary = {
@@ -110,8 +104,9 @@ export type OneofArbitrary = {
   variants: Arbitrary[]
 }
 
-export const oneofArbitrary = (variants: Arbitrary[]): OneofArbitrary =>
-  memoize({ type: `oneof`, variants })
+export const oneofArbitrary = (
+  variants: OneofArbitrary[`variants`],
+): OneofArbitrary => memoize({ type: `oneof`, variants })
 
 export type AnythingArbitrary = {
   type: `anything`
@@ -147,7 +142,7 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
     case `record`:
       return keyalesce([
         arbitrary.type,
-        ...Object.entries(arbitrary.properties).flatMap(
+        ...[...arbitrary.properties].flatMap(
           ([name, { required, arbitrary }]) => [name, required, arbitrary],
         ),
       ])

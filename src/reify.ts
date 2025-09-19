@@ -24,7 +24,7 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
         [global(`Symbol`)],
       )
     case `record`: {
-      const properties = Object.entries(arbitrary.properties)
+      const properties = [...arbitrary.properties]
       const requiredPropertyNames = properties.flatMap(
         ([name, { required }]) => (required ? [name] : []),
       )
@@ -32,7 +32,7 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
         ts.factory.createObjectLiteralExpression(
           properties.map(([name, { arbitrary }]) =>
             ts.factory.createPropertyAssignment(
-              name,
+              ts.factory.createComputedPropertyName(literal(name)),
               reifyArbitrary(arbitrary),
             ),
           ),

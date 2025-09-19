@@ -98,21 +98,16 @@ test.each([
       typeToArbitrary<{ a: string; b: number | undefined }>(),
     expectedArb: fc.record({
       a: fc.string(),
-      b: fc.oneof(fc.double(), fc.constant(undefined)),
+      b: fc.option(fc.double(), { nil: undefined }),
     }),
   },
   {
     name: `object literal with optionals`,
     typeToArbitrary: () => typeToArbitrary<{ a: string; b?: number }>(),
     expectedArb: fc.record(
-      { a: fc.string(), b: fc.oneof(fc.double(), fc.constant(undefined)) },
+      { a: fc.string(), b: fc.option(fc.double(), { nil: undefined }) },
       { requiredKeys: [`a`] },
     ),
-  },
-  {
-    name: `union`,
-    typeToArbitrary: () => typeToArbitrary<string | number>(),
-    expectedArb: fc.oneof(fc.string(), fc.double()),
   },
   {
     name: `union of false and true`,
@@ -139,6 +134,26 @@ test.each([
     // eslint-disable-next-line stylistic/quotes
     typeToArbitrary: () => typeToArbitrary<'b' | 'a' | 'd' | 'c'>(),
     expectedArb: fc.constantFrom(`a`, `b`, `c`, `d`),
+  },
+  {
+    name: `union of string and undefined`,
+    typeToArbitrary: () => typeToArbitrary<string | undefined>(),
+    expectedArb: fc.option(fc.string(), { nil: undefined }),
+  },
+  {
+    name: `union of string and null`,
+    typeToArbitrary: () => typeToArbitrary<string | null>(),
+    expectedArb: fc.option(fc.string()),
+  },
+  {
+    name: `union of string, undefined, and null`,
+    typeToArbitrary: () => typeToArbitrary<string | undefined | null>(),
+    expectedArb: fc.oneof(fc.string(), fc.constantFrom(null, undefined)),
+  },
+  {
+    name: `union of string and number`,
+    typeToArbitrary: () => typeToArbitrary<string | number>(),
+    expectedArb: fc.oneof(fc.string(), fc.double()),
   },
   {
     name: `unconstrained type parameter`,

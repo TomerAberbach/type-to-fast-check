@@ -25,10 +25,13 @@ export const constantArbitrary = (value: unknown): ConstantArbitrary =>
 export type OptionArbitrary = {
   type: `option`
   arbitrary: Arbitrary
+  nil: undefined | null
 }
 
-export const optionArbitrary = (arbitrary: Arbitrary): OptionArbitrary =>
-  memoize({ type: `option`, arbitrary })
+export const optionArbitrary = (props: {
+  arbitrary: Arbitrary
+  nil: undefined | null
+}): OptionArbitrary => memoize({ type: `option`, ...props })
 
 export type BooleanArbitrary = {
   type: `boolean`
@@ -140,7 +143,7 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
     case `constant`:
       return keyalesce([arbitrary.type, arbitrary.value])
     case `option`:
-      return keyalesce([arbitrary.type, arbitrary.arbitrary])
+      return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
     case `record`:
       return keyalesce([
         arbitrary.type,

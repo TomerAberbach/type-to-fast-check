@@ -60,13 +60,23 @@ const normalizeConstantFromArbitrary = (
     case 1:
       return constantArbitrary(constants.values().next().value)
     default:
-      if (!constants.has(null)) {
-        return constantFromArbitrary([...constants])
+      if (constants.has(undefined) && !constants.has(null)) {
+        constants.delete(undefined)
+        return optionArbitrary({
+          arbitrary: constantFromArbitrary([...constants]),
+          nil: undefined,
+        })
       }
-      constants.delete(null)
-      return optionArbitrary(
-        normalizeArbitrary(constantFromArbitrary([...constants])),
-      )
+
+      if (constants.has(null) && !constants.has(undefined)) {
+        constants.delete(null)
+        return optionArbitrary({
+          arbitrary: constantFromArbitrary([...constants]),
+          nil: null,
+        })
+      }
+
+      return constantFromArbitrary([...constants])
   }
 }
 
@@ -98,13 +108,22 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
       break
   }
 
-  const nullConstant = constantArbitrary(null)
   const constants = new SameValueSet<unknown>()
   for (const variant of variants) {
-    if (variant.type === `constant` && variant !== nullConstant) {
+    if (variant.type === `constant`) {
       constants.add(variant.value)
       variants.delete(variant)
     }
+  }
+
+  const undefinedConstant = constantArbitrary(undefined)
+  const nullConstant = constantArbitrary(null)
+  if (constants.has(undefined) && !constants.has(null)) {
+    constants.delete(undefined)
+    variants.add(undefinedConstant)
+  } else if (constants.has(null) && !constants.has(undefined)) {
+    constants.delete(null)
+    variants.add(nullConstant)
   }
 
   if (constants.size === 1) {
@@ -117,12 +136,20 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
     variants.add(arbitrary)
   }
 
-  if (!variants.has(nullConstant)) {
-    return oneofArbitrary([...variants])
+  if (variants.delete(undefinedConstant)) {
+    return optionArbitrary({
+      arbitrary: normalizeArbitrary(oneofArbitrary([...variants])),
+      nil: undefined,
+    })
+  }
+  if (variants.delete(nullConstant)) {
+    return optionArbitrary({
+      arbitrary: normalizeArbitrary(oneofArbitrary([...variants])),
+      nil: null,
+    })
   }
 
-  variants.delete(nullConstant)
-  return optionArbitrary(normalizeArbitrary(oneofArbitrary([...variants])))
+  return oneofArbitrary([...variants])
 }
 
 const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
@@ -135,9 +162,10 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `symbol`:
     case `record`:
     case `object`:
-    case `option`:
     case `anything`:
       return [arbitrary]
+    case `option`:
+      return [arbitrary.arbitrary, constantArbitrary(arbitrary.nil)]
     case `constantFrom`:
       return arbitrary.constants.map(constantArbitrary)
     case `oneof`:

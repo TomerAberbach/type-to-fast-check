@@ -33,15 +33,13 @@ const visitTypeToArbitraryCallExpressions = (
 
   if (isTypeToArbitraryCallExpression) {
     const typeNode = node.typeArguments[0]!
-    return reifyArbitrary(
-      normalizeArbitrary(
-        generateArbitrary(
-          typeChecker.getTypeFromTypeNode(typeNode),
-          typeNode,
-          typeChecker,
-        ),
-      ),
+    const arbitrary = generateArbitrary(
+      typeChecker.getTypeFromTypeNode(typeNode),
+      typeNode,
+      typeChecker,
     )
+    const normalizedArbitrary = normalizeArbitrary(arbitrary)
+    return reifyArbitrary(normalizedArbitrary)
   }
 
   return ts.visitEachChild(

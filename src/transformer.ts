@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import { addFastCheckImport } from './fast-check.ts'
 import generateArbitrary from './generate.ts'
+import normalizeArbitrary from './normalize.ts'
 import reifyArbitrary from './reify.ts'
 
 const createTransformer = (
@@ -33,10 +34,12 @@ const visitTypeToArbitraryCallExpressions = (
   if (isTypeToArbitraryCallExpression) {
     const typeNode = node.typeArguments[0]!
     return reifyArbitrary(
-      generateArbitrary(
-        typeChecker.getTypeFromTypeNode(typeNode),
-        typeNode,
-        typeChecker,
+      normalizeArbitrary(
+        generateArbitrary(
+          typeChecker.getTypeFromTypeNode(typeNode),
+          typeNode,
+          typeChecker,
+        ),
       ),
     )
   }

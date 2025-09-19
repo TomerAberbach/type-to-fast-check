@@ -93,6 +93,15 @@ test.each([
     expectedArb: fc.record({ a: fc.string(), b: fc.double() }),
   },
   {
+    name: `object literal with undefined`,
+    typeToArbitrary: () =>
+      typeToArbitrary<{ a: string; b: number | undefined }>(),
+    expectedArb: fc.record({
+      a: fc.string(),
+      b: fc.oneof(fc.double(), fc.constant(undefined)),
+    }),
+  },
+  {
     name: `object literal with optionals`,
     typeToArbitrary: () => typeToArbitrary<{ a: string; b?: number }>(),
     expectedArb: fc.record(

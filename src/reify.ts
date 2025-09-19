@@ -39,23 +39,17 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
         ),
         ...(requiredPropertyNames.length > 0 &&
         requiredPropertyNames.length < properties.length
-          ? [
-              ts.factory.createObjectLiteralExpression([
-                ts.factory.createPropertyAssignment(
-                  `requiredKeys`,
-                  ts.factory.createArrayLiteralExpression(
-                    requiredPropertyNames.map(literal),
-                  ),
-                ),
-              ]),
-            ]
+          ? [literal({ requiredKeys: requiredPropertyNames })]
           : []),
       ])
     }
     case `object`:
       return fcCall(`object`)
     case `option`:
-      return fcCall(`option`, [reifyArbitrary(arbitrary.arbitrary)])
+      return fcCall(`option`, [
+        reifyArbitrary(arbitrary.arbitrary),
+        ...(arbitrary.nil === undefined ? [literal({ nil: undefined })] : []),
+      ])
     case `constantFrom`:
       return fcCall(`constantFrom`, arbitrary.constants.map(literal))
     case `oneof`:
@@ -86,13 +80,17 @@ const literal = (value: unknown): ts.Expression => {
           : [],
       )
     case `object`:
-      return value === null
-        ? ts.factory.createNull()
-        : ts.factory.createObjectLiteralExpression(
-            Object.entries(value).map(([name, value]) =>
-              ts.factory.createPropertyAssignment(name, literal(value)),
-            ),
-          )
+      if (value === null) {
+        return ts.factory.createNull()
+      }
+      if (Array.isArray(value)) {
+        return ts.factory.createArrayLiteralExpression(value.map(literal))
+      }
+      return ts.factory.createObjectLiteralExpression(
+        Object.entries(value).map(([name, value]) =>
+          ts.factory.createPropertyAssignment(name, literal(value)),
+        ),
+      )
     case `function`:
       throw new Error(`Unsupported type`)
   }

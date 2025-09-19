@@ -11,6 +11,7 @@ import type {
   Arbitrary,
   ConstantFromArbitrary,
   OneofArbitrary,
+  OptionArbitrary,
   RecordArbitrary,
 } from './arbitrary.ts'
 import { compareConstants } from './sort.ts'
@@ -24,9 +25,10 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
     case `string`:
     case `symbol`:
     case `object`:
-    case `option`:
     case `anything`:
       return arbitrary
+    case `option`:
+      return normalizeOptionArbitrary(arbitrary)
     case `record`:
       return normalizeRecordArbitrary(arbitrary)
     case `constantFrom`:
@@ -36,15 +38,19 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
   }
 }
 
+const normalizeOptionArbitrary = (arbitrary: OptionArbitrary): Arbitrary =>
+  optionArbitrary({
+    arbitrary: normalizeArbitrary(arbitrary.arbitrary),
+    nil: arbitrary.nil,
+  })
+
 const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
   recordArbitrary(
-    Object.fromEntries(
-      Object.entries(arbitrary.properties).map(
-        ([name, { required, arbitrary }]) => [
-          name,
-          { required, arbitrary: normalizeArbitrary(arbitrary) },
-        ],
-      ),
+    new Map(
+      Array.from(arbitrary.properties, ([name, { required, arbitrary }]) => [
+        name,
+        { required, arbitrary: normalizeArbitrary(arbitrary) },
+      ]),
     ),
   )
 
@@ -63,7 +69,7 @@ const normalizeConstantFromArbitrary = (
       if (constants.has(undefined) && !constants.has(null)) {
         constants.delete(undefined)
         return optionArbitrary({
-          arbitrary: constantFromArbitrary([...constants]),
+          arbitrary: normalizeArbitrary(constantFromArbitrary([...constants])),
           nil: undefined,
         })
       }
@@ -71,7 +77,7 @@ const normalizeConstantFromArbitrary = (
       if (constants.has(null) && !constants.has(undefined)) {
         constants.delete(null)
         return optionArbitrary({
-          arbitrary: constantFromArbitrary([...constants]),
+          arbitrary: normalizeArbitrary(constantFromArbitrary([...constants])),
           nil: null,
         })
       }
@@ -165,7 +171,10 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `anything`:
       return [arbitrary]
     case `option`:
-      return [arbitrary.arbitrary, constantArbitrary(arbitrary.nil)]
+      return [
+        ...spreadUnionArbitraries(arbitrary.arbitrary),
+        constantArbitrary(arbitrary.nil),
+      ]
     case `constantFrom`:
       return arbitrary.constants.map(constantArbitrary)
     case `oneof`:

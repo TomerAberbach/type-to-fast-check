@@ -1,5 +1,4 @@
-import { test } from '@fast-check/vitest'
-import * as fc from 'fast-check'
+import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import typeToArbitrary from './index.js'
 

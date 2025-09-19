@@ -88,7 +88,7 @@ const generateRawObjectArbitrary = (
   typeChecker: ts.TypeChecker,
 ): Arbitrary =>
   recordArbitrary(
-    Object.fromEntries(
+    new Map(
       typeChecker.getPropertiesOfType(type).map(symbol => {
         const required = !(symbol.flags & ts.SymbolFlags.Optional)
         const arbitrary = generateArbitrary(

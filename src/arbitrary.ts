@@ -8,6 +8,7 @@ export type Arbitrary =
   | BigIntArbitrary
   | StringArbitrary
   | SymbolArbitrary
+  | ArrayArbitrary
   | RecordArbitrary
   | ObjectArbitrary
   | ConstantFromArbitrary
@@ -67,6 +68,15 @@ export type SymbolArbitrary = {
 
 export const symbolArbitrary = (): SymbolArbitrary =>
   memoize({ type: `symbol` })
+
+export type ArrayArbitrary = {
+  type: `array`
+  items: Arbitrary
+}
+
+export const arrayArbitrary = (
+  items: ArrayArbitrary[`items`],
+): ArrayArbitrary => memoize({ type: `array`, items })
 
 export type RecordArbitrary = {
   type: `record`
@@ -139,6 +149,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, arbitrary.value])
     case `option`:
       return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
+    case `array`:
+      return keyalesce([arbitrary.type, arbitrary.items])
     case `record`:
       return keyalesce([
         arbitrary.type,

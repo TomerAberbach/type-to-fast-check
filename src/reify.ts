@@ -23,6 +23,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
         undefined,
         [global(`Symbol`)],
       )
+    case `array`:
+      return fcCall(`array`, [reifyArbitrary(arbitrary.items)])
     case `record`: {
       const properties = [...arbitrary.properties]
       const requiredPropertyNames = properties.flatMap(

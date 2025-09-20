@@ -5,6 +5,7 @@ import {
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
+  constantFromArbitrary,
   doubleArbitrary,
   objectArbitrary,
   oneofArbitrary,
@@ -28,7 +29,6 @@ const generateArbitrary = (
       return generateArbitrary(type, typeChecker)
     }
   }
-
   return anythingArbitrary()
 }
 
@@ -133,6 +133,32 @@ const generateArrayArbitrary = (
 
 const generateNonPrimitiveArbitrary = () => objectArbitrary()
 
+const generateEnumArbitrary = (type: ts.Type) => {
+  const enumDeclaration = type.symbol.declarations?.find(declaration =>
+    ts.isEnumDeclaration(declaration),
+  )
+  if (!enumDeclaration) {
+    return anythingArbitrary()
+  }
+
+  let lastNumericConstant = -1
+  const constant = enumDeclaration.members.map(member => {
+    if (member.initializer) {
+      if (ts.isStringLiteral(member.initializer)) {
+        return member.initializer.text
+      }
+      if (ts.isNumericLiteral(member.initializer)) {
+        lastNumericConstant = Number.parseInt(member.initializer.text, 10)
+        return lastNumericConstant
+      }
+    }
+
+    return ++lastNumericConstant
+  })
+
+  return constantFromArbitrary(constant)
+}
+
 const generateUnionArbitrary = (type: ts.Type, typeChecker: ts.TypeChecker) =>
   oneofArbitrary(
     (type as ts.UnionType).types.map(type =>
@@ -172,6 +198,7 @@ const typeGenerators = new Map<
   [ts.TypeFlags.ESSymbol, generateSymbolArbitrary],
   [ts.TypeFlags.Object, generateObjectArbitrary],
   [ts.TypeFlags.NonPrimitive, generateNonPrimitiveArbitrary],
+  [ts.TypeFlags.Enum, generateEnumArbitrary],
   [ts.TypeFlags.Union, generateUnionArbitrary],
   [ts.TypeFlags.Unknown, generateUnknownArbitrary],
   [ts.TypeFlags.Any, generateAnyArbitrary],

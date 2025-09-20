@@ -1,5 +1,6 @@
 import { SameValueSet } from 'svkc'
 import {
+  arrayArbitrary,
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
@@ -9,6 +10,7 @@ import {
 } from './arbitrary.ts'
 import type {
   Arbitrary,
+  ArrayArbitrary,
   ConstantFromArbitrary,
   OneofArbitrary,
   OptionArbitrary,
@@ -29,6 +31,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return arbitrary
     case `option`:
       return normalizeOptionArbitrary(arbitrary)
+    case `array`:
+      return normalizeArrayArbitrary(arbitrary)
     case `record`:
       return normalizeRecordArbitrary(arbitrary)
     case `constantFrom`:
@@ -43,6 +47,9 @@ const normalizeOptionArbitrary = (arbitrary: OptionArbitrary): Arbitrary =>
     arbitrary: normalizeArbitrary(arbitrary.arbitrary),
     nil: arbitrary.nil,
   })
+
+const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
+  arrayArbitrary(normalizeArbitrary(arbitrary.items))
 
 const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
   recordArbitrary(
@@ -166,6 +173,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `bigInt`:
     case `string`:
     case `symbol`:
+    case `array`:
     case `record`:
     case `object`:
     case `anything`:

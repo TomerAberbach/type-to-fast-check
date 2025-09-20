@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import {
   anythingArbitrary,
+  arrayArbitrary,
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
@@ -19,71 +20,68 @@ const generateArbitrary = (
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
   if (typeNode && ts.isThisTypeNode(typeNode)) {
-    // TODO
     return generateArbitrary(type, undefined, typeChecker)
   }
 
-  if (type.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) {
-    return constantArbitrary(undefined)
-  }
-  if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
-    return anythingArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.Boolean) {
-    return booleanArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.Number) {
-    return doubleArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.BigInt) {
-    return bigIntArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.String) {
-    return stringArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.BooleanLiteral) {
-    return constantArbitrary(typeChecker.typeToString(type) === `true`)
-  }
-  if (type.isLiteral()) {
-    const value =
-      typeof type.value === `object`
-        ? BigInt(type.value.base10Value) * (type.value.negative ? -1n : 1n)
-        : type.value
-    return constantArbitrary(value)
-  }
-  if (type.flags & ts.TypeFlags.ESSymbol) {
-    return symbolArbitrary()
-  }
-  if (type.flags & ts.TypeFlags.Null) {
-    return constantArbitrary(null)
-  }
-  if (type.flags & ts.TypeFlags.Never) {
-    // TODO
-  }
-  if (type.flags & ts.TypeFlags.Object) {
-    return generateRawObjectArbitrary(type as ts.ObjectType, typeChecker)
-  }
-  if (type.flags & ts.TypeFlags.NonPrimitive) {
-    return objectArbitrary()
-  }
-
-  if (type.isUnion()) {
-    return oneofArbitrary(
-      type.types.map(type => generateArbitrary(type, undefined, typeChecker)),
-    )
-  }
-
-  if (type.flags & ts.TypeFlags.TypeParameter) {
-    const constraintType = type.getConstraint()
-    return constraintType
-      ? generateArbitrary(constraintType, undefined, typeChecker)
-      : anythingArbitrary()
+  for (const [flag, generateArbitrary] of typeGenerators) {
+    if (type.flags & flag) {
+      return generateArbitrary(type, typeChecker)
+    }
   }
 
   return anythingArbitrary()
 }
 
-const generateRawObjectArbitrary = (
+const generateVoidArbitrary = () => constantArbitrary(undefined)
+
+const generateUndefinedArbitrary = () => constantArbitrary(undefined)
+
+const generateNullArbitrary = () => constantArbitrary(null)
+
+const generateBooleanArbitrary = () => booleanArbitrary()
+
+const generateBooleanLiteralArbitrary = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+) => constantArbitrary(typeChecker.typeToString(type) === `true`)
+
+const generateNumberArbitrary = () => doubleArbitrary()
+
+const generateNumberLiteralArbitrary = (type: ts.Type) =>
+  constantArbitrary((type as ts.NumberLiteralType).value)
+
+const generateBigIntArbitrary = () => bigIntArbitrary()
+
+const generateBigIntLiteralArbitrary = (type: ts.Type) => {
+  const { value } = type as ts.BigIntLiteralType
+  return constantArbitrary(
+    BigInt(value.base10Value) * (value.negative ? -1n : 1n),
+  )
+}
+
+const generateStringArbitrary = () => stringArbitrary()
+
+const generateStringLiteralArbitrary = (type: ts.Type) =>
+  constantArbitrary((type as ts.StringLiteralType).value)
+
+const generateSymbolArbitrary = () => symbolArbitrary()
+
+const generateObjectArbitrary = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+): Arbitrary => {
+  const objectType = type as ts.ObjectType
+
+  for (const [flag, generateArbitrary] of objectTypeGenerators) {
+    if (objectType.objectFlags & flag) {
+      return generateArbitrary(objectType, typeChecker)
+    }
+  }
+
+  return objectArbitrary()
+}
+
+const generateAnonymousObjectArbitrary = (
   type: ts.ObjectType,
   typeChecker: ts.TypeChecker,
 ): Arbitrary =>
@@ -103,5 +101,97 @@ const generateRawObjectArbitrary = (
       }),
     ),
   )
+
+const generateReferenceArbitrary = (
+  type: ts.ObjectType,
+  typeChecker: ts.TypeChecker,
+) => {
+  const isBuiltin = Boolean(
+    type.symbol.declarations?.some(
+      declaration => declaration.getSourceFile().hasNoDefaultLib,
+    ),
+  )
+  if (!isBuiltin) {
+    return anythingArbitrary()
+  }
+
+  const generateArbitrary = builtinTypeGenerators.get(type.symbol.name)
+  if (!generateArbitrary) {
+    return anythingArbitrary()
+  }
+
+  return generateArbitrary(type as ts.TypeReference, typeChecker)
+}
+
+const generateArrayArbitrary = (
+  type: ts.TypeReference,
+  typeChecker: ts.TypeChecker,
+) => {
+  const [itemType = typeChecker.getUnknownType()] = type.typeArguments ?? []
+  return arrayArbitrary(generateArbitrary(itemType, undefined, typeChecker))
+}
+
+const generateNonPrimitiveArbitrary = () => objectArbitrary()
+
+const generateUnionArbitrary = (type: ts.Type, typeChecker: ts.TypeChecker) =>
+  oneofArbitrary(
+    (type as ts.UnionType).types.map(type =>
+      generateArbitrary(type, undefined, typeChecker),
+    ),
+  )
+
+const generateUnknownArbitrary = () => anythingArbitrary()
+
+const generateAnyArbitrary = () => anythingArbitrary()
+
+const generateTypeParameterArbitrary = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+) => {
+  const constraintType = type.getConstraint()
+  return constraintType
+    ? generateArbitrary(constraintType, undefined, typeChecker)
+    : anythingArbitrary()
+}
+
+const typeGenerators = new Map<
+  ts.TypeFlags,
+  (type: ts.Type, typeChecker: ts.TypeChecker) => Arbitrary
+>([
+  [ts.TypeFlags.Void, generateVoidArbitrary],
+  [ts.TypeFlags.Undefined, generateUndefinedArbitrary],
+  [ts.TypeFlags.Null, generateNullArbitrary],
+  [ts.TypeFlags.Boolean, generateBooleanArbitrary],
+  [ts.TypeFlags.BooleanLiteral, generateBooleanLiteralArbitrary],
+  [ts.TypeFlags.Number, generateNumberArbitrary],
+  [ts.TypeFlags.NumberLiteral, generateNumberLiteralArbitrary],
+  [ts.TypeFlags.BigInt, generateBigIntArbitrary],
+  [ts.TypeFlags.BigIntLiteral, generateBigIntLiteralArbitrary],
+  [ts.TypeFlags.String, generateStringArbitrary],
+  [ts.TypeFlags.StringLiteral, generateStringLiteralArbitrary],
+  [ts.TypeFlags.ESSymbol, generateSymbolArbitrary],
+  [ts.TypeFlags.Object, generateObjectArbitrary],
+  [ts.TypeFlags.NonPrimitive, generateNonPrimitiveArbitrary],
+  [ts.TypeFlags.Union, generateUnionArbitrary],
+  [ts.TypeFlags.Unknown, generateUnknownArbitrary],
+  [ts.TypeFlags.Any, generateAnyArbitrary],
+  [ts.TypeFlags.TypeParameter, generateTypeParameterArbitrary],
+])
+
+const objectTypeGenerators = new Map<
+  ts.ObjectFlags,
+  (type: ts.ObjectType, typeChecker: ts.TypeChecker) => Arbitrary
+>([
+  [ts.ObjectFlags.Anonymous, generateAnonymousObjectArbitrary],
+  [ts.ObjectFlags.Reference, generateReferenceArbitrary],
+])
+
+const builtinTypeGenerators = new Map<
+  string,
+  (type: ts.TypeReference, typeChecker: ts.TypeChecker) => Arbitrary
+>([
+  [`Array`, generateArrayArbitrary],
+  [`ReadonlyArray`, generateArrayArbitrary],
+])
 
 export default generateArbitrary

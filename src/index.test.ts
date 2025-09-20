@@ -82,6 +82,28 @@ test.each([
     stringify: true,
   },
   {
+    name: `array`,
+    typeToArbitrary: () => typeToArbitrary<string[]>(),
+    expectedArb: fc.array(fc.string()),
+  },
+  {
+    name: `array interface`,
+    // eslint-disable-next-line typescript/array-type
+    typeToArbitrary: () => typeToArbitrary<Array<string>>(),
+    expectedArb: fc.array(fc.string()),
+  },
+  {
+    name: `readonly array`,
+    typeToArbitrary: () => typeToArbitrary<readonly string[]>(),
+    expectedArb: fc.array(fc.string()),
+  },
+  {
+    name: `readonly array interface`,
+    // eslint-disable-next-line typescript/array-type
+    typeToArbitrary: () => typeToArbitrary<ReadonlyArray<string>>(),
+    expectedArb: fc.array(fc.string()),
+  },
+  {
     name: `object`,
     typeToArbitrary: () => typeToArbitrary<object>(),
     expectedArb: fc.object(),

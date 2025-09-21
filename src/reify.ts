@@ -4,6 +4,36 @@ import { fcCall } from './fast-check.ts'
 
 const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
   switch (arbitrary.type) {
+    case `never`:
+      return ts.factory.createCallExpression(
+        ts.factory.createPropertyAccessExpression(
+          fcCall(`constant`, [literal(`never`)]),
+          ts.factory.createIdentifier(`map`),
+        ),
+        undefined,
+        [
+          ts.factory.createArrowFunction(
+            undefined,
+            undefined,
+            [
+              ts.factory.createParameterDeclaration(
+                undefined,
+                undefined,
+                `message`,
+              ),
+            ],
+            undefined,
+            undefined,
+            ts.factory.createBlock([
+              ts.factory.createThrowStatement(
+                ts.factory.createNewExpression(global(`Error`), undefined, [
+                  ts.factory.createIdentifier(`message`),
+                ]),
+              ),
+            ]),
+          ),
+        ],
+      )
     case `constant`:
       return fcCall(`constant`, [literal(arbitrary.value)])
     case `boolean`:

@@ -20,6 +20,7 @@ import { compareConstants } from './sort.ts'
 
 const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
   switch (arbitrary.type) {
+    case `never`:
     case `constant`:
     case `boolean`:
     case `double`:
@@ -178,6 +179,8 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `object`:
     case `anything`:
       return [arbitrary]
+    case `never`:
+      return []
     case `option`:
       return [
         ...spreadUnionArbitraries(arbitrary.arbitrary),

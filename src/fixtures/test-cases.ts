@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 
 import * as fc from 'fast-check'
@@ -10,14 +11,11 @@ const define = <T>(testCase: {
   stringify?: boolean
 }) => testCase
 
-export const any = define({
-  actual: typeToArbitrary<any>(),
-  expected: fc.anything(),
-})
-
-export const unknown = define({
-  actual: typeToArbitrary<unknown>(),
-  expected: fc.anything(),
+export const never = define({
+  actual: typeToArbitrary<never>(),
+  expected: fc.constant(`never`).map(message => {
+    throw new Error(message)
+  }),
 })
 
 const voidType = define({
@@ -89,6 +87,14 @@ export const symbol = define({
   stringify: true,
 })
 
+const _symbol: unique symbol = Symbol('unique')
+
+export const uniqueSymbol = define({
+  actual: typeToArbitrary<typeof _symbol>(),
+  expected: fc.string().map(Symbol),
+  stringify: true,
+})
+
 export const array = define({
   actual: typeToArbitrary<string[]>(),
   expected: fc.array(fc.string()),
@@ -148,6 +154,11 @@ export const stringEnum = define({
   expected: fc.constantFrom(`a`, `b`, `c`),
 })
 
+export const stringEnumLiteral = define({
+  actual: typeToArbitrary<StringEnum.C>(),
+  expected: fc.constant(`c`),
+})
+
 enum IntEnum {
   B = 1,
   A = 0,
@@ -157,6 +168,11 @@ enum IntEnum {
 export const intEnum = define({
   actual: typeToArbitrary<IntEnum>(),
   expected: fc.constantFrom(0, 1, 2),
+})
+
+export const intEnumLiteral = define({
+  actual: typeToArbitrary<IntEnum.C>(),
+  expected: fc.constant(2),
 })
 
 enum ImplicitIntEnum {
@@ -170,15 +186,26 @@ export const implicitIntEnum = define({
   expected: fc.constantFrom(0, 1, 2),
 })
 
+export const implicitIntEnumLiteral = define({
+  actual: typeToArbitrary<ImplicitIntEnum.B>(),
+  expected: fc.constant(1),
+})
+
 enum PartiallyImplicitIntEnum {
   A = 4,
   B,
   C = 2,
   D,
 }
+
 export const partiallyImplicitIntEnum = define({
   actual: typeToArbitrary<PartiallyImplicitIntEnum>(),
   expected: fc.constantFrom(2, 3, 4, 5),
+})
+
+export const partiallyImplicitIntEnumLiteral = define({
+  actual: typeToArbitrary<PartiallyImplicitIntEnum.B>(),
+  expected: fc.constant(5),
 })
 
 export const falseOrTrue = define({
@@ -226,6 +253,11 @@ export const stringOrNumber = define({
   expected: fc.oneof(fc.string(), fc.double()),
 })
 
+export const stringOrNever = define({
+  actual: typeToArbitrary<string | never>(),
+  expected: fc.string(),
+})
+
 export const unconstrainedTypeParam = define({
   actual: (<T>() => typeToArbitrary<T>())(),
   expected: fc.anything(),
@@ -234,4 +266,14 @@ export const unconstrainedTypeParam = define({
 export const constrainedTypeParam = define({
   actual: (<T extends string>() => typeToArbitrary<T>())(),
   expected: fc.string(),
+})
+
+export const unknown = define({
+  actual: typeToArbitrary<unknown>(),
+  expected: fc.anything(),
+})
+
+export const any = define({
+  actual: typeToArbitrary<any>(),
+  expected: fc.anything(),
 })

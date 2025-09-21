@@ -66,6 +66,11 @@ test.each(await getTestCases())(
 )
 
 const sample = <T>(arb: fc.Arbitrary<T>, stringify = false): unknown[] => {
-  const samples = fc.sample(arb, { seed: 42, numRuns: 5 })
+  let samples: unknown[]
+  try {
+    samples = fc.sample(arb, { seed: 42, numRuns: 5 })
+  } catch (error: unknown) {
+    samples = [error]
+  }
   return stringify ? samples.map(fc.stringify) : samples
 }

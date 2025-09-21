@@ -1,6 +1,7 @@
 import keyalesce from 'keyalesce'
 
 export type Arbitrary =
+  | NeverArbitrary
   | ConstantArbitrary
   | OptionArbitrary
   | BooleanArbitrary
@@ -14,6 +15,12 @@ export type Arbitrary =
   | ConstantFromArbitrary
   | OneofArbitrary
   | AnythingArbitrary
+
+export type NeverArbitrary = {
+  type: `never`
+}
+
+export const neverArbitrary = (): NeverArbitrary => memoize({ type: `never` })
 
 export type ConstantArbitrary = {
   type: `constant`
@@ -137,6 +144,7 @@ const memoize = <A extends Arbitrary>(arbitrary: A): A => {
 
 const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
   switch (arbitrary.type) {
+    case `never`:
     case `boolean`:
     case `double`:
     case `bigInt`:

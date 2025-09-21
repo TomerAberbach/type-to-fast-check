@@ -5,8 +5,8 @@ import {
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
-  constantFromArbitrary,
   doubleArbitrary,
+  neverArbitrary,
   objectArbitrary,
   oneofArbitrary,
   recordArbitrary,
@@ -17,13 +17,8 @@ import type { Arbitrary } from './arbitrary.ts'
 
 const generateArbitrary = (
   type: ts.Type,
-  typeNode: ts.TypeNode | undefined,
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
-  if (typeNode && ts.isThisTypeNode(typeNode)) {
-    return generateArbitrary(type, undefined, typeChecker)
-  }
-
   for (const [flag, generateArbitrary] of typeGenerators) {
     if (type.flags & flag) {
       return generateArbitrary(type, typeChecker)
@@ -31,6 +26,8 @@ const generateArbitrary = (
   }
   return anythingArbitrary()
 }
+
+const generateNeverArbitrary = () => neverArbitrary()
 
 const generateVoidArbitrary = () => constantArbitrary(undefined)
 
@@ -89,14 +86,15 @@ const generateAnonymousObjectArbitrary = (
     new Map(
       typeChecker.getPropertiesOfType(type).map(symbol => {
         const required = !(symbol.flags & ts.SymbolFlags.Optional)
-        const arbitrary = generateArbitrary(
-          typeChecker.getTypeOfSymbolAtLocation(
-            symbol,
-            symbol.valueDeclaration!,
-          ),
-          undefined,
-          typeChecker,
-        )
+        const arbitrary = symbol.valueDeclaration
+          ? generateArbitrary(
+              typeChecker.getTypeOfSymbolAtLocation(
+                symbol,
+                symbol.valueDeclaration,
+              ),
+              typeChecker,
+            )
+          : anythingArbitrary()
         return [symbol.name, { required, arbitrary }]
       }),
     ),
@@ -128,41 +126,15 @@ const generateArrayArbitrary = (
   typeChecker: ts.TypeChecker,
 ) => {
   const [itemType = typeChecker.getUnknownType()] = type.typeArguments ?? []
-  return arrayArbitrary(generateArbitrary(itemType, undefined, typeChecker))
+  return arrayArbitrary(generateArbitrary(itemType, typeChecker))
 }
 
 const generateNonPrimitiveArbitrary = () => objectArbitrary()
 
-const generateEnumArbitrary = (type: ts.Type) => {
-  const enumDeclaration = type.symbol.declarations?.find(declaration =>
-    ts.isEnumDeclaration(declaration),
-  )
-  if (!enumDeclaration) {
-    return anythingArbitrary()
-  }
-
-  let lastNumericConstant = -1
-  const constant = enumDeclaration.members.map(member => {
-    if (member.initializer) {
-      if (ts.isStringLiteral(member.initializer)) {
-        return member.initializer.text
-      }
-      if (ts.isNumericLiteral(member.initializer)) {
-        lastNumericConstant = Number.parseInt(member.initializer.text, 10)
-        return lastNumericConstant
-      }
-    }
-
-    return ++lastNumericConstant
-  })
-
-  return constantFromArbitrary(constant)
-}
-
 const generateUnionArbitrary = (type: ts.Type, typeChecker: ts.TypeChecker) =>
   oneofArbitrary(
     (type as ts.UnionType).types.map(type =>
-      generateArbitrary(type, undefined, typeChecker),
+      generateArbitrary(type, typeChecker),
     ),
   )
 
@@ -176,7 +148,7 @@ const generateTypeParameterArbitrary = (
 ) => {
   const constraintType = type.getConstraint()
   return constraintType
-    ? generateArbitrary(constraintType, undefined, typeChecker)
+    ? generateArbitrary(constraintType, typeChecker)
     : anythingArbitrary()
 }
 
@@ -184,6 +156,7 @@ const typeGenerators = new Map<
   ts.TypeFlags,
   (type: ts.Type, typeChecker: ts.TypeChecker) => Arbitrary
 >([
+  [ts.TypeFlags.Never, generateNeverArbitrary],
   [ts.TypeFlags.Void, generateVoidArbitrary],
   [ts.TypeFlags.Undefined, generateUndefinedArbitrary],
   [ts.TypeFlags.Null, generateNullArbitrary],
@@ -196,14 +169,36 @@ const typeGenerators = new Map<
   [ts.TypeFlags.String, generateStringArbitrary],
   [ts.TypeFlags.StringLiteral, generateStringLiteralArbitrary],
   [ts.TypeFlags.ESSymbol, generateSymbolArbitrary],
+  [ts.TypeFlags.UniqueESSymbol, generateSymbolArbitrary],
   [ts.TypeFlags.Object, generateObjectArbitrary],
   [ts.TypeFlags.NonPrimitive, generateNonPrimitiveArbitrary],
-  [ts.TypeFlags.Enum, generateEnumArbitrary],
   [ts.TypeFlags.Union, generateUnionArbitrary],
   [ts.TypeFlags.Unknown, generateUnknownArbitrary],
   [ts.TypeFlags.Any, generateAnyArbitrary],
   [ts.TypeFlags.TypeParameter, generateTypeParameterArbitrary],
 ])
+
+// TODO
+// Intersection = 2097152,
+// Index = 4194304,
+// IndexedAccess = 8388608,
+// Conditional = 16777216,
+// Substitution = 33554432,
+// NonPrimitive = 67108864,
+// TemplateLiteral = 134217728,
+// StringMapping = 268435456,
+// Literal = 2944,
+// Unit = 109472,
+// Freshable = 2976,
+// StringOrNumberLiteral = 384,
+// PossiblyFalsy = 117724,
+// StructuredType = 3670016,
+// TypeVariable = 8650752,
+// InstantiableNonPrimitive = 58982400,
+// InstantiablePrimitive = 406847488,
+// Instantiable = 465829888,
+// StructuredOrInstantiable = 469499904,
+// Narrowable = 536624127,
 
 const objectTypeGenerators = new Map<
   ts.ObjectFlags,

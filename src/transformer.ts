@@ -35,7 +35,6 @@ const visitTypeToArbitraryCallExpressions = (
     const typeNode = node.typeArguments[0]!
     const arbitrary = generateArbitrary(
       typeChecker.getTypeFromTypeNode(typeNode),
-      typeNode,
       typeChecker,
     )
     const normalizedArbitrary = normalizeArbitrary(arbitrary)

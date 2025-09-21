@@ -55,6 +55,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
       )
     case `array`:
       return fcCall(`array`, [reifyArbitrary(arbitrary.items)])
+    case `tuple`:
+      return fcCall(`tuple`, arbitrary.elements.map(reifyArbitrary))
     case `record`: {
       const properties = [...arbitrary.properties]
       const requiredPropertyNames = properties.flatMap(

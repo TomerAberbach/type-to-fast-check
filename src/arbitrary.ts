@@ -10,6 +10,7 @@ export type Arbitrary =
   | StringArbitrary
   | SymbolArbitrary
   | ArrayArbitrary
+  | TupleArbitrary
   | RecordArbitrary
   | ObjectArbitrary
   | ConstantFromArbitrary
@@ -85,6 +86,15 @@ export const arrayArbitrary = (
   items: ArrayArbitrary[`items`],
 ): ArrayArbitrary => memoize({ type: `array`, items })
 
+export type TupleArbitrary = {
+  type: `tuple`
+  elements: Arbitrary[]
+}
+
+export const tupleArbitrary = (
+  elements: TupleArbitrary[`elements`],
+): TupleArbitrary => memoize({ type: `tuple`, elements })
+
 export type RecordArbitrary = {
   type: `record`
   properties: Map<
@@ -159,6 +169,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
     case `array`:
       return keyalesce([arbitrary.type, arbitrary.items])
+    case `tuple`:
+      return keyalesce([arbitrary.type, ...arbitrary.elements])
     case `record`:
       return keyalesce([
         arbitrary.type,

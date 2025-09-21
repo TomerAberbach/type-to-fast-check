@@ -3,6 +3,7 @@ import { fc, test } from '@fast-check/vitest'
 import { importFromString } from 'import-from-string'
 import ts from 'typescript'
 import { expect } from 'vitest'
+import { FAST_CHECK_IDENTIFIER_NAME } from './fast-check.ts'
 import type * as TestCases from './fixtures/test-cases.ts'
 import createTransformer from './transformer.ts'
 
@@ -40,6 +41,8 @@ const transformTypeScript = (code: string): string => {
   } finally {
     transformResult.dispose()
   }
+
+  console.log(transformedCode.replaceAll(FAST_CHECK_IDENTIFIER_NAME, `fc`))
 
   const transpileResult = ts.transpileModule(transformedCode, {
     compilerOptions,

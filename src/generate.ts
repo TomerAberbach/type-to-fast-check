@@ -12,6 +12,7 @@ import {
   recordArbitrary,
   stringArbitrary,
   symbolArbitrary,
+  tupleArbitrary,
 } from './arbitrary.ts'
 import type { Arbitrary } from './arbitrary.ts'
 
@@ -70,7 +71,11 @@ const generateObjectArbitrary = (
   const objectType = type as ts.ObjectType
 
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
-    if (objectType.objectFlags & flag) {
+    if (
+      objectType.objectFlags & flag ||
+      (objectType.objectFlags & ts.ObjectFlags.Reference &&
+        (objectType as ts.TypeReference).target.objectFlags & flag)
+    ) {
       return generateArbitrary(objectType, typeChecker)
     }
   }
@@ -100,6 +105,16 @@ const generateAnonymousObjectArbitrary = (
     ),
   )
 
+const generateTupleArbitrary = (
+  type: ts.ObjectType,
+  typeChecker: ts.TypeChecker,
+) =>
+  tupleArbitrary(
+    typeChecker
+      .getTypeArguments(type as ts.TupleType)
+      .map(elementType => generateArbitrary(elementType, typeChecker)),
+  )
+
 const generateReferenceArbitrary = (
   type: ts.ObjectType,
   typeChecker: ts.TypeChecker,
@@ -109,16 +124,15 @@ const generateReferenceArbitrary = (
       declaration => declaration.getSourceFile().hasNoDefaultLib,
     ),
   )
-  if (!isBuiltin) {
-    return anythingArbitrary()
-  }
+  const generateBuiltinArbitrary = isBuiltin
+    ? builtinTypeGenerators.get(type.symbol.name)
+    : undefined
 
-  const generateArbitrary = builtinTypeGenerators.get(type.symbol.name)
-  if (!generateArbitrary) {
-    return anythingArbitrary()
-  }
-
-  return generateArbitrary(type as ts.TypeReference, typeChecker)
+  const typeReference = type as ts.TypeReference
+  return (
+    generateBuiltinArbitrary?.(typeReference, typeChecker) ??
+    generateArbitrary(typeReference.target, typeChecker)
+  )
 }
 
 const generateArrayArbitrary = (
@@ -205,6 +219,7 @@ const objectTypeGenerators = new Map<
   (type: ts.ObjectType, typeChecker: ts.TypeChecker) => Arbitrary
 >([
   [ts.ObjectFlags.Anonymous, generateAnonymousObjectArbitrary],
+  [ts.ObjectFlags.Tuple, generateTupleArbitrary],
   [ts.ObjectFlags.Reference, generateReferenceArbitrary],
 ])
 

@@ -71,12 +71,17 @@ const generateObjectArbitrary = (
 ): Arbitrary => {
   const objectType = type as ts.ObjectType
 
+  const referenceArbitrary = generateReferenceArbitrary(objectType, typeChecker)
+  if (referenceArbitrary) {
+    return referenceArbitrary
+  }
+
   const callSignatures = typeChecker.getSignaturesOfType(
     type,
     ts.SignatureKind.Call,
   )
   if (callSignatures.length > 0) {
-    return generateFuncArbitrary(callSignatures, typeChecker)
+    return generateFuncArbitrary(type, typeChecker)
   }
 
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
@@ -92,17 +97,37 @@ const generateObjectArbitrary = (
   return objectArbitrary()
 }
 
-const generateFuncArbitrary = (
-  callSignatures: readonly ts.Signature[],
+const generateReferenceArbitrary = (
+  type: ts.ObjectType,
   typeChecker: ts.TypeChecker,
-): Arbitrary =>
-  funcArbitrary(
-    oneofArbitrary(
-      callSignatures.map(signature =>
-        generateArbitrary(signature.getReturnType(), typeChecker),
-      ),
+): Arbitrary | undefined => {
+  const isBuiltin = Boolean(
+    // eslint-disable-next-line typescript/no-unnecessary-condition
+    type.symbol?.declarations?.some(
+      declaration => declaration.getSourceFile().hasNoDefaultLib,
     ),
   )
+  const generateBuiltinArbitrary = isBuiltin
+    ? builtinTypeGenerators.get(type.symbol.name)
+    : undefined
+
+  const typeReference = type as ts.TypeReference
+  return generateBuiltinArbitrary?.(typeReference, typeChecker)
+}
+
+const generateFuncArbitrary = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+): Arbitrary => {
+  const resultArbitraries = typeChecker
+    .getSignaturesOfType(type, ts.SignatureKind.Call)
+    .map(signature => generateArbitrary(signature.getReturnType(), typeChecker))
+  return funcArbitrary(
+    resultArbitraries.length === 0
+      ? anythingArbitrary()
+      : oneofArbitrary(resultArbitraries),
+  )
+}
 
 const generateAnonymousObjectArbitrary = (
   type: ts.ObjectType,
@@ -135,26 +160,6 @@ const generateTupleArbitrary = (
       .getTypeArguments(type as ts.TupleType)
       .map(elementType => generateArbitrary(elementType, typeChecker)),
   )
-
-const generateReferenceArbitrary = (
-  type: ts.ObjectType,
-  typeChecker: ts.TypeChecker,
-) => {
-  const isBuiltin = Boolean(
-    type.symbol.declarations?.some(
-      declaration => declaration.getSourceFile().hasNoDefaultLib,
-    ),
-  )
-  const generateBuiltinArbitrary = isBuiltin
-    ? builtinTypeGenerators.get(type.symbol.name)
-    : undefined
-
-  const typeReference = type as ts.TypeReference
-  return (
-    generateBuiltinArbitrary?.(typeReference, typeChecker) ??
-    generateArbitrary(typeReference.target, typeChecker)
-  )
-}
 
 const generateArrayArbitrary = (
   type: ts.TypeReference,
@@ -241,7 +246,6 @@ const objectTypeGenerators = new Map<
 >([
   [ts.ObjectFlags.Anonymous, generateAnonymousObjectArbitrary],
   [ts.ObjectFlags.Tuple, generateTupleArbitrary],
-  [ts.ObjectFlags.Reference, generateReferenceArbitrary],
 ])
 
 const builtinTypeGenerators = new Map<
@@ -250,6 +254,7 @@ const builtinTypeGenerators = new Map<
 >([
   [`Array`, generateArrayArbitrary],
   [`ReadonlyArray`, generateArrayArbitrary],
+  [`Function`, generateFuncArbitrary],
 ])
 
 export default generateArbitrary

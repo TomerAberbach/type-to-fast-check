@@ -2,7 +2,8 @@
 /* eslint-disable stylistic/quotes */
 
 import * as fc from 'fast-check'
-import typeToArbitrary from '../index.ts'
+
+declare const typeToArbitrary: <T>() => fc.Arbitrary<T>
 
 /** For type-safety between actual and expected arbitrary types. */
 const define = <T>(testCase: {
@@ -11,11 +12,13 @@ const define = <T>(testCase: {
   stringify?: boolean
 }) => testCase
 
+const neverArb = fc.constant(`never`).map(message => {
+  throw new Error(message)
+})
+
 export const never = define({
   actual: typeToArbitrary<never>(),
-  expected: fc.constant(`never`).map(message => {
-    throw new Error(message)
-  }),
+  expected: neverArb,
 })
 
 const voidType = define({
@@ -115,6 +118,11 @@ export const readonlyArrayInterface = define({
   // eslint-disable-next-line typescript/array-type
   actual: typeToArbitrary<ReadonlyArray<string>>(),
   expected: fc.array(fc.string()),
+})
+
+export const tuple = define({
+  actual: typeToArbitrary<[string, number]>(),
+  expected: fc.tuple(fc.string(), fc.double()),
 })
 
 export const objectLiteral = define({

@@ -7,6 +7,7 @@ import {
   oneofArbitrary,
   optionArbitrary,
   recordArbitrary,
+  tupleArbitrary,
 } from './arbitrary.ts'
 import type {
   Arbitrary,
@@ -15,6 +16,7 @@ import type {
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
+  TupleArbitrary,
 } from './arbitrary.ts'
 import { compareConstants } from './sort.ts'
 
@@ -34,6 +36,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return normalizeOptionArbitrary(arbitrary)
     case `array`:
       return normalizeArrayArbitrary(arbitrary)
+    case `tuple`:
+      return normalizeTupleArbitrary(arbitrary)
     case `record`:
       return normalizeRecordArbitrary(arbitrary)
     case `constantFrom`:
@@ -44,13 +48,13 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
 }
 
 const normalizeOptionArbitrary = (arbitrary: OptionArbitrary): Arbitrary =>
-  optionArbitrary({
-    arbitrary: normalizeArbitrary(arbitrary.arbitrary),
-    nil: arbitrary.nil,
-  })
+  normalizeArbitrary(oneofArbitrary(spreadUnionArbitraries(arbitrary)))
 
 const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
   arrayArbitrary(normalizeArbitrary(arbitrary.items))
+
+const normalizeTupleArbitrary = (arbitrary: TupleArbitrary): Arbitrary =>
+  tupleArbitrary(arbitrary.elements.map(normalizeArbitrary))
 
 const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
   recordArbitrary(
@@ -88,6 +92,17 @@ const normalizeConstantFromArbitrary = (
           arbitrary: normalizeArbitrary(constantFromArbitrary([...constants])),
           nil: null,
         })
+      }
+
+      if (constants.has(false) && constants.has(true)) {
+        constants.delete(false)
+        constants.delete(true)
+        return normalizeArbitrary(
+          oneofArbitrary([
+            booleanArbitrary(),
+            constantFromArbitrary([...constants]),
+          ]),
+        )
       }
 
       return constantFromArbitrary([...constants])
@@ -175,6 +190,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `string`:
     case `symbol`:
     case `array`:
+    case `tuple`:
     case `record`:
     case `object`:
     case `anything`:

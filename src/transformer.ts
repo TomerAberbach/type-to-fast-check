@@ -24,28 +24,41 @@ const visitTypeToArbitraryCallExpressions = (
   node: ts.Node,
   typeChecker: ts.TypeChecker,
   context: ts.TransformationContext,
-): ts.Node => {
-  const isTypeToArbitraryCallExpression =
-    ts.isCallExpression(node) &&
-    ts.isIdentifier(node.expression) &&
-    node.expression.text === `typeToArbitrary` &&
-    node.typeArguments?.length === 1
-
-  if (isTypeToArbitraryCallExpression) {
-    const typeNode = node.typeArguments[0]!
-    const arbitrary = generateArbitrary(
-      typeChecker.getTypeFromTypeNode(typeNode),
-      typeChecker,
-    )
-    const normalizedArbitrary = normalizeArbitrary(arbitrary)
-    return reifyArbitrary(normalizedArbitrary)
-  }
-
-  return ts.visitEachChild(
+): ts.Node =>
+  visitTypeToArbitraryCallExpression(node, typeChecker) ??
+  ts.visitEachChild(
     node,
     node => visitTypeToArbitraryCallExpressions(node, typeChecker, context),
     context,
   )
+
+const visitTypeToArbitraryCallExpression = (
+  node: ts.Node,
+  typeChecker: ts.TypeChecker,
+): ts.Expression | undefined => {
+  const isTypeToArbitraryCallExpression =
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === `typeToArbitrary`
+  if (!isTypeToArbitraryCallExpression) {
+    return
+  }
+
+  const signature = typeChecker.getResolvedSignature(node)
+  if (!signature) {
+    return
+  }
+
+  const typeArguments =
+    typeChecker.getTypeArgumentsForResolvedSignature(signature)
+  if (typeArguments?.length !== 1) {
+    return
+  }
+
+  const type = typeArguments[0]!
+  const arbitrary = generateArbitrary(type, typeChecker)
+  const normalizedArbitrary = normalizeArbitrary(arbitrary)
+  return reifyArbitrary(normalizedArbitrary)
 }
 
 export default createTransformer

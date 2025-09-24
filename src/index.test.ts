@@ -51,12 +51,21 @@ const transformTypeScript = (code: string): string => {
 }
 
 const getTestCases = async () => {
-  const code = transformTypeScript(
-    await fs.readFile(`${import.meta.dirname}/fixtures/test-cases.ts`, `utf8`),
+  const tsCode = await fs.readFile(
+    `${import.meta.dirname}/fixtures/test-cases.ts`,
+    `utf8`,
   )
-  const testCases = (await importFromString(code)) as typeof TestCases
-  return Object.entries(testCases).map(([name, testCase]) => ({
-    name,
+  const jsCode = transformTypeScript(tsCode)
+
+  const typeMatches = Array.from(
+    tsCode.matchAll(/typeToArbitrary<(?<type>.+)>\(\)/gu),
+    ({ groups }) => groups?.type ?? `?`,
+  )
+  const testCases = ((await importFromString(jsCode)) as typeof TestCases)
+    .default
+
+  return testCases.map((testCase, index) => ({
+    name: typeMatches[index],
     ...testCase,
   }))
 }

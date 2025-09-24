@@ -79,6 +79,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
     }
     case `object`:
       return fcCall(`object`)
+    case `func`:
+      return fcCall(`func`, [reifyArbitrary(arbitrary.result)])
     case `option`:
       return fcCall(`option`, [
         reifyArbitrary(arbitrary.arbitrary),

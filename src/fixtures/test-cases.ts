@@ -126,6 +126,12 @@ define({
   expected: fc.object(),
 })
 
+define({
+  actual: typeToArbitrary<() => string>(),
+  expected: fc.func(fc.string()),
+  stringify: true,
+})
+
 enum StringEnum {
   B = 'b',
   A = 'a',
@@ -236,10 +242,7 @@ define({
   expected: fc.oneof(fc.string(), fc.double()),
 })
 
-define({
-  actual: typeToArbitrary<string | never>(),
-  expected: fc.string(),
-})
+define({ actual: typeToArbitrary<string | never>(), expected: fc.string() })
 
 define({
   actual: (<T>() => typeToArbitrary<T>())(),
@@ -251,14 +254,8 @@ define({
   expected: fc.string(),
 })
 
-define({
-  actual: typeToArbitrary<unknown>(),
-  expected: fc.anything(),
-})
+define({ actual: typeToArbitrary<unknown>(), expected: fc.anything() })
 
-define({
-  actual: typeToArbitrary<any>(),
-  expected: fc.anything(),
-})
+define({ actual: typeToArbitrary<any>(), expected: fc.anything() })
 
 export default testCases

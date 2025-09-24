@@ -6,6 +6,7 @@ import {
   booleanArbitrary,
   constantArbitrary,
   doubleArbitrary,
+  funcArbitrary,
   neverArbitrary,
   objectArbitrary,
   oneofArbitrary,
@@ -70,6 +71,14 @@ const generateObjectArbitrary = (
 ): Arbitrary => {
   const objectType = type as ts.ObjectType
 
+  const callSignatures = typeChecker.getSignaturesOfType(
+    type,
+    ts.SignatureKind.Call,
+  )
+  if (callSignatures.length > 0) {
+    return generateFuncArbitrary(callSignatures, typeChecker)
+  }
+
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
     if (
       objectType.objectFlags & flag ||
@@ -82,6 +91,18 @@ const generateObjectArbitrary = (
 
   return objectArbitrary()
 }
+
+const generateFuncArbitrary = (
+  callSignatures: readonly ts.Signature[],
+  typeChecker: ts.TypeChecker,
+): Arbitrary =>
+  funcArbitrary(
+    oneofArbitrary(
+      callSignatures.map(signature =>
+        generateArbitrary(signature.getReturnType(), typeChecker),
+      ),
+    ),
+  )
 
 const generateAnonymousObjectArbitrary = (
   type: ts.ObjectType,

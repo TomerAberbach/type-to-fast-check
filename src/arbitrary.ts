@@ -13,6 +13,7 @@ export type Arbitrary =
   | TupleArbitrary
   | RecordArbitrary
   | ObjectArbitrary
+  | FuncArbitrary
   | ConstantFromArbitrary
   | OneofArbitrary
   | AnythingArbitrary
@@ -117,6 +118,14 @@ export type ObjectArbitrary = {
 export const objectArbitrary = (): ObjectArbitrary =>
   memoize({ type: `object` })
 
+export type FuncArbitrary = {
+  type: `func`
+  result: Arbitrary
+}
+
+export const funcArbitrary = (result: FuncArbitrary[`result`]): FuncArbitrary =>
+  memoize({ type: `func`, result })
+
 export type ConstantFromArbitrary = {
   type: `constantFrom`
   constants: unknown[]
@@ -178,6 +187,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
           ([name, { required, arbitrary }]) => [name, required, arbitrary],
         ),
       ])
+    case `func`:
+      return keyalesce([arbitrary.type, arbitrary.result])
     case `constantFrom`:
       return keyalesce([arbitrary.type, ...arbitrary.constants])
     case `oneof`:

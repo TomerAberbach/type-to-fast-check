@@ -4,6 +4,7 @@ import {
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
+  funcArbitrary,
   oneofArbitrary,
   optionArbitrary,
   recordArbitrary,
@@ -13,6 +14,7 @@ import type {
   Arbitrary,
   ArrayArbitrary,
   ConstantFromArbitrary,
+  FuncArbitrary,
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
@@ -40,6 +42,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return normalizeTupleArbitrary(arbitrary)
     case `record`:
       return normalizeRecordArbitrary(arbitrary)
+    case `func`:
+      return normalizeFuncArbitrary(arbitrary)
     case `constantFrom`:
       return normalizeConstantFromArbitrary(arbitrary)
     case `oneof`:
@@ -65,6 +69,9 @@ const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
       ]),
     ),
   )
+
+const normalizeFuncArbitrary = (arbitrary: FuncArbitrary): Arbitrary =>
+  funcArbitrary(normalizeArbitrary(arbitrary.result))
 
 const normalizeConstantFromArbitrary = (
   arbitrary: ConstantFromArbitrary,
@@ -193,6 +200,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `tuple`:
     case `record`:
     case `object`:
+    case `func`:
     case `anything`:
       return [arbitrary]
     case `never`:

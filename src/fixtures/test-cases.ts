@@ -5,86 +5,61 @@ import * as fc from 'fast-check'
 
 declare const typeToArbitrary: <T>() => fc.Arbitrary<T>
 
+type TestCase<T = unknown> = {
+  actual: fc.Arbitrary<T>
+  expected: fc.Arbitrary<T>
+  stringify?: boolean
+}
+
+const testCases: TestCase[] = []
+
 /** For type-safety between actual and expected arbitrary types. */
 const define = <T>(testCase: {
   actual: fc.Arbitrary<T>
   expected: fc.Arbitrary<T>
   stringify?: boolean
-}) => testCase
+}) => {
+  testCases.push(testCase)
+}
 
 const neverArb = fc.constant(`never`).map(message => {
   throw new Error(message)
 })
 
-export const never = define({
-  actual: typeToArbitrary<never>(),
-  expected: neverArb,
-})
+define({ actual: typeToArbitrary<never>(), expected: neverArb })
 
-const voidType = define({
-  // eslint-disable-next-line typescript/no-invalid-void-type
-  actual: typeToArbitrary<void>(),
-  expected: fc.constant(undefined),
-})
-export { voidType as void }
+// eslint-disable-next-line typescript/no-invalid-void-type
+define({ actual: typeToArbitrary<void>(), expected: fc.constant(undefined) })
 
-const undefinedType = define({
+define({
   actual: typeToArbitrary<undefined>(),
   expected: fc.constant(undefined),
 })
-export { undefinedType as undefined }
 
-export const boolean = define({
-  actual: typeToArbitrary<boolean>(),
-  expected: fc.boolean(),
-})
+define({ actual: typeToArbitrary<boolean>(), expected: fc.boolean() })
 
-export const falseLiteral = define({
-  actual: typeToArbitrary<false>(),
-  expected: fc.constant(false),
-})
+define({ actual: typeToArbitrary<false>(), expected: fc.constant(false) })
 
-export const trueLiteral = define({
-  actual: typeToArbitrary<true>(),
-  expected: fc.constant(true),
-})
+define({ actual: typeToArbitrary<true>(), expected: fc.constant(true) })
 
-export const number = define({
-  actual: typeToArbitrary<number>(),
-  expected: fc.double(),
-})
+define({ actual: typeToArbitrary<number>(), expected: fc.double() })
 
-export const integerLiteral = define({
-  actual: typeToArbitrary<1>(),
-  expected: fc.constant(1),
-})
+define({ actual: typeToArbitrary<1>(), expected: fc.constant(1) })
 
-export const doubleLiteral = define({
-  actual: typeToArbitrary<1.5>(),
-  expected: fc.constant(1.5),
-})
+define({ actual: typeToArbitrary<1.5>(), expected: fc.constant(1.5) })
 
-export const bigint = define({
-  actual: typeToArbitrary<bigint>(),
-  expected: fc.bigInt(),
-})
+define({ actual: typeToArbitrary<bigint>(), expected: fc.bigInt() })
 
-export const bigintLiteral = define({
-  actual: typeToArbitrary<1n>(),
-  expected: fc.constant(1n),
-})
+define({ actual: typeToArbitrary<1n>(), expected: fc.constant(1n) })
 
-export const string = define({
-  actual: typeToArbitrary<string>(),
-  expected: fc.string(),
-})
+define({ actual: typeToArbitrary<string>(), expected: fc.string() })
 
-export const stringLiteral = define({
+define({
   actual: typeToArbitrary<'Hello World!'>(),
   expected: fc.constant(`Hello World!`),
 })
 
-export const symbol = define({
+define({
   actual: typeToArbitrary<symbol>(),
   expected: fc.string().map(Symbol),
   stringify: true,
@@ -92,45 +67,45 @@ export const symbol = define({
 
 const _symbol: unique symbol = Symbol('unique')
 
-export const uniqueSymbol = define({
+define({
   actual: typeToArbitrary<typeof _symbol>(),
   expected: fc.string().map(Symbol),
   stringify: true,
 })
 
-export const array = define({
+define({
   actual: typeToArbitrary<string[]>(),
   expected: fc.array(fc.string()),
 })
 
-export const arrayInterface = define({
+define({
   // eslint-disable-next-line typescript/array-type
   actual: typeToArbitrary<Array<string>>(),
   expected: fc.array(fc.string()),
 })
 
-export const readonlyArray = define({
+define({
   actual: typeToArbitrary<readonly string[]>(),
   expected: fc.array(fc.string()),
 })
 
-export const readonlyArrayInterface = define({
+define({
   // eslint-disable-next-line typescript/array-type
   actual: typeToArbitrary<ReadonlyArray<string>>(),
   expected: fc.array(fc.string()),
 })
 
-export const tuple = define({
+define({
   actual: typeToArbitrary<[string, number]>(),
   expected: fc.tuple(fc.string(), fc.double()),
 })
 
-export const objectLiteral = define({
+define({
   actual: typeToArbitrary<{ a: string; b: number }>(),
   expected: fc.record({ a: fc.string(), b: fc.double() }),
 })
 
-export const objectLiteralWithUndefinedProperty = define({
+define({
   actual: typeToArbitrary<{ a: string; b: number | undefined }>(),
   expected: fc.record({
     a: fc.string(),
@@ -138,7 +113,7 @@ export const objectLiteralWithUndefinedProperty = define({
   }),
 })
 
-export const objectLiteralWithOptionalProperty = define({
+define({
   actual: typeToArbitrary<{ a: string; b?: number }>(),
   expected: fc.record(
     { a: fc.string(), b: fc.option(fc.double(), { nil: undefined }) },
@@ -146,7 +121,7 @@ export const objectLiteralWithOptionalProperty = define({
   ),
 })
 
-export const object = define({
+define({
   actual: typeToArbitrary<object>(),
   expected: fc.object(),
 })
@@ -157,12 +132,12 @@ enum StringEnum {
   C = 'c',
 }
 
-export const stringEnum = define({
+define({
   actual: typeToArbitrary<StringEnum>(),
   expected: fc.constantFrom(`a`, `b`, `c`),
 })
 
-export const stringEnumLiteral = define({
+define({
   actual: typeToArbitrary<StringEnum.C>(),
   expected: fc.constant(`c`),
 })
@@ -173,12 +148,12 @@ enum IntEnum {
   C = 2,
 }
 
-export const intEnum = define({
+define({
   actual: typeToArbitrary<IntEnum>(),
   expected: fc.constantFrom(0, 1, 2),
 })
 
-export const intEnumLiteral = define({
+define({
   actual: typeToArbitrary<IntEnum.C>(),
   expected: fc.constant(2),
 })
@@ -189,12 +164,12 @@ enum ImplicitIntEnum {
   C,
 }
 
-export const implicitIntEnum = define({
+define({
   actual: typeToArbitrary<ImplicitIntEnum>(),
   expected: fc.constantFrom(0, 1, 2),
 })
 
-export const implicitIntEnumLiteral = define({
+define({
   actual: typeToArbitrary<ImplicitIntEnum.B>(),
   expected: fc.constant(1),
 })
@@ -206,82 +181,84 @@ enum PartiallyImplicitIntEnum {
   D,
 }
 
-export const partiallyImplicitIntEnum = define({
+define({
   actual: typeToArbitrary<PartiallyImplicitIntEnum>(),
   expected: fc.constantFrom(2, 3, 4, 5),
 })
 
-export const partiallyImplicitIntEnumLiteral = define({
+define({
   actual: typeToArbitrary<PartiallyImplicitIntEnum.B>(),
   expected: fc.constant(5),
 })
 
-export const falseOrTrue = define({
+define({
   actual: typeToArbitrary<false | true>(),
   expected: fc.boolean(),
 })
 
-export const trueOrFalse = define({
+define({
   actual: typeToArbitrary<true | false>(),
   expected: fc.boolean(),
 })
 
-export const numberUnion = define({
+define({
   actual: typeToArbitrary<1 | 3 | 2 | 4>(),
   expected: fc.constantFrom(1, 2, 3, 4),
 })
 
-export const bigintUnion = define({
+define({
   actual: typeToArbitrary<1n | 3n | 2n | 4n>(),
   expected: fc.constantFrom(1n, 2n, 3n, 4n),
 })
 
-export const stringUnion = define({
+define({
   actual: typeToArbitrary<'b' | 'a' | 'd' | 'c'>(),
   expected: fc.constantFrom(`a`, `b`, `c`, `d`),
 })
 
-export const stringOrUndefined = define({
+define({
   actual: typeToArbitrary<string | undefined>(),
   expected: fc.option(fc.string(), { nil: undefined }),
 })
 
-export const stringOrNull = define({
+define({
   actual: typeToArbitrary<string | null>(),
   expected: fc.option(fc.string()),
 })
 
-export const stringOrUndefinedOrNull = define({
+define({
   actual: typeToArbitrary<string | undefined | null>(),
   expected: fc.oneof(fc.string(), fc.constantFrom(null, undefined)),
 })
 
-export const stringOrNumber = define({
+define({
   actual: typeToArbitrary<string | number>(),
   expected: fc.oneof(fc.string(), fc.double()),
 })
 
-export const stringOrNever = define({
+define({
   actual: typeToArbitrary<string | never>(),
   expected: fc.string(),
 })
 
-export const unconstrainedTypeParam = define({
+define({
   actual: (<T>() => typeToArbitrary<T>())(),
   expected: fc.anything(),
 })
 
-export const constrainedTypeParam = define({
+define({
   actual: (<T extends string>() => typeToArbitrary<T>())(),
   expected: fc.string(),
 })
 
-export const unknown = define({
+define({
   actual: typeToArbitrary<unknown>(),
   expected: fc.anything(),
 })
 
-export const any = define({
+define({
   actual: typeToArbitrary<any>(),
   expected: fc.anything(),
 })
+
+export default testCases

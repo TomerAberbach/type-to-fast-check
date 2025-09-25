@@ -147,11 +147,6 @@ const generateUnionRegex = (
     .join(`|`)
 
 const concatenatingRegexRequiresParenthesizing = (regex: string): boolean => {
-  // Empty string is safe
-  if (!regex) {
-    return false
-  }
-
   // Remove escaped characters to avoid false positives.
   regex = regex.replaceAll(/\\./gu, ``)
 

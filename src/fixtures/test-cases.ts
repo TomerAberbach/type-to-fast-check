@@ -1,3 +1,5 @@
+/* eslint-disable typescript/no-unsafe-function-type */
+/* eslint-disable typescript/array-type */
 /* eslint-disable security/detect-unsafe-regex */
 /* eslint-disable typescript/no-unnecessary-template-expression */
 /* eslint-disable typescript/no-invalid-void-type */
@@ -53,14 +55,14 @@ define({ actual: typeToArbitrary<1.5>(), expected: fc.constant(1.5) })
 define({ actual: typeToArbitrary<-3>(), expected: fc.constant(-3) })
 define({ actual: typeToArbitrary<-3.14>(), expected: fc.constant(-3.14) })
 
-// Bigints
+// Bigint
 define({ actual: typeToArbitrary<bigint>(), expected: fc.bigInt() })
 define({ actual: typeToArbitrary<0n>(), expected: fc.constant(0n) })
 define({ actual: typeToArbitrary<1n>(), expected: fc.constant(1n) })
 define({ actual: typeToArbitrary<42n>(), expected: fc.constant(42n) })
 define({ actual: typeToArbitrary<-3n>(), expected: fc.constant(-3n) })
 
-// Strings
+// String
 define({ actual: typeToArbitrary<string>(), expected: fc.string() })
 define({
   actual: typeToArbitrary<'Hello World!'>(),
@@ -123,7 +125,7 @@ define({
   expected: fc.stringMatching(/^Hello (?:.|\n)*!$/u),
 })
 
-// Symbols
+// Symbol
 define({
   actual: typeToArbitrary<symbol>(),
   expected: fc.string().map(Symbol),
@@ -136,38 +138,35 @@ define({
   stringify: true,
 })
 
+// Array
 define({
   actual: typeToArbitrary<string[]>(),
   expected: fc.array(fc.string()),
 })
-
 define({
-  // eslint-disable-next-line typescript/array-type
   actual: typeToArbitrary<Array<string>>(),
   expected: fc.array(fc.string()),
 })
-
 define({
   actual: typeToArbitrary<readonly string[]>(),
   expected: fc.array(fc.string()),
 })
-
 define({
-  // eslint-disable-next-line typescript/array-type
   actual: typeToArbitrary<ReadonlyArray<string>>(),
   expected: fc.array(fc.string()),
 })
 
+// Tuple
 define({
   actual: typeToArbitrary<[string, number]>(),
   expected: fc.tuple(fc.string(), fc.double()),
 })
 
+// Object
 define({
   actual: typeToArbitrary<{ a: string; b: number }>(),
   expected: fc.record({ a: fc.string(), b: fc.double() }),
 })
-
 define({
   actual: typeToArbitrary<{ a: string; b: number | undefined }>(),
   expected: fc.record({
@@ -175,7 +174,6 @@ define({
     b: fc.option(fc.double(), { nil: undefined }),
   }),
 })
-
 define({
   actual: typeToArbitrary<{ a: string; b?: number }>(),
   expected: fc.record(
@@ -183,149 +181,129 @@ define({
     { requiredKeys: [`a`] },
   ),
 })
-
 define({
   actual: typeToArbitrary<object>(),
   expected: fc.object(),
 })
 
+// Function
 define({
   actual: typeToArbitrary<() => string>(),
   expected: fc.func(fc.string()),
   stringify: true,
 })
-
 define({
-  // eslint-disable-next-line typescript/no-unsafe-function-type
   actual: typeToArbitrary<Function>(),
   expected: fc.func(fc.anything()),
   stringify: true,
 })
 
+// Enum
 enum StringEnum {
   B = 'b',
   A = 'a',
   C = 'c',
 }
-
 define({
   actual: typeToArbitrary<StringEnum>(),
   expected: fc.constantFrom(`a`, `b`, `c`),
 })
-
 define({
   actual: typeToArbitrary<StringEnum.C>(),
   expected: fc.constant(`c`),
 })
-
 enum IntEnum {
   B = 1,
   A = 0,
   C = 2,
 }
-
 define({
   actual: typeToArbitrary<IntEnum>(),
   expected: fc.constantFrom(0, 1, 2),
 })
-
 define({
   actual: typeToArbitrary<IntEnum.C>(),
   expected: fc.constant(2),
 })
-
 enum ImplicitIntEnum {
   A,
   B,
   C,
 }
-
 define({
   actual: typeToArbitrary<ImplicitIntEnum>(),
   expected: fc.constantFrom(0, 1, 2),
 })
-
 define({
   actual: typeToArbitrary<ImplicitIntEnum.B>(),
   expected: fc.constant(1),
 })
-
 enum PartiallyImplicitIntEnum {
   A = 4,
   B,
   C = 2,
   D,
 }
-
 define({
   actual: typeToArbitrary<PartiallyImplicitIntEnum>(),
   expected: fc.constantFrom(2, 3, 4, 5),
 })
-
 define({
   actual: typeToArbitrary<PartiallyImplicitIntEnum.B>(),
   expected: fc.constant(5),
 })
 
+// Union
 define({
   actual: typeToArbitrary<false | true>(),
   expected: fc.boolean(),
 })
-
 define({
   actual: typeToArbitrary<true | false>(),
   expected: fc.boolean(),
 })
-
 define({
   actual: typeToArbitrary<1 | 3 | 2 | 4>(),
   expected: fc.constantFrom(1, 2, 3, 4),
 })
-
 define({
   actual: typeToArbitrary<1n | 3n | 2n | 4n>(),
   expected: fc.constantFrom(1n, 2n, 3n, 4n),
 })
-
 define({
   actual: typeToArbitrary<'b' | 'a' | 'd' | 'c'>(),
   expected: fc.constantFrom(`a`, `b`, `c`, `d`),
 })
-
 define({
   actual: typeToArbitrary<string | undefined>(),
   expected: fc.option(fc.string(), { nil: undefined }),
 })
-
 define({
   actual: typeToArbitrary<string | null>(),
   expected: fc.option(fc.string()),
 })
-
 define({
   actual: typeToArbitrary<string | undefined | null>(),
   expected: fc.oneof(fc.string(), fc.constantFrom(null, undefined)),
 })
-
 define({
   actual: typeToArbitrary<string | number>(),
   expected: fc.oneof(fc.string(), fc.double()),
 })
-
 define({ actual: typeToArbitrary<string | never>(), expected: fc.string() })
 
+// Type parameter
 define({
   actual: (<T>() => typeToArbitrary<T>())(),
   expected: fc.anything(),
 })
-
 define({
   actual: (<T extends string>() => typeToArbitrary<T>())(),
   expected: fc.string(),
 })
 
+// Unknown
 define({ actual: typeToArbitrary<unknown>(), expected: fc.anything() })
-
 define({ actual: typeToArbitrary<any>(), expected: fc.anything() })
 
 export default testCases

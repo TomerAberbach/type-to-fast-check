@@ -30,6 +30,7 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
     case `double`:
     case `bigInt`:
     case `string`:
+    case `stringMatching`:
     case `symbol`:
     case `object`:
     case `anything`:
@@ -197,6 +198,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `double`:
     case `bigInt`:
     case `string`:
+    case `stringMatching`:
     case `symbol`:
     case `array`:
     case `tuple`:

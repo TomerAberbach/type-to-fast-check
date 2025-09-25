@@ -1,3 +1,6 @@
+/* eslint-disable security/detect-unsafe-regex */
+/* eslint-disable typescript/no-unnecessary-template-expression */
+/* eslint-disable typescript/no-invalid-void-type */
 /* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 
@@ -26,47 +29,107 @@ const neverArb = fc.constant(`never`).map(message => {
   throw new Error(message)
 })
 
+// Never
 define({ actual: typeToArbitrary<never>(), expected: neverArb })
 
-// eslint-disable-next-line typescript/no-invalid-void-type
+// Undefined
 define({ actual: typeToArbitrary<void>(), expected: fc.constant(undefined) })
-
 define({
   actual: typeToArbitrary<undefined>(),
   expected: fc.constant(undefined),
 })
 
+// Boolean
 define({ actual: typeToArbitrary<boolean>(), expected: fc.boolean() })
-
 define({ actual: typeToArbitrary<false>(), expected: fc.constant(false) })
-
 define({ actual: typeToArbitrary<true>(), expected: fc.constant(true) })
 
+// Number
 define({ actual: typeToArbitrary<number>(), expected: fc.double() })
-
+define({ actual: typeToArbitrary<0>(), expected: fc.constant(0) })
 define({ actual: typeToArbitrary<1>(), expected: fc.constant(1) })
-
+define({ actual: typeToArbitrary<42>(), expected: fc.constant(42) })
 define({ actual: typeToArbitrary<1.5>(), expected: fc.constant(1.5) })
+define({ actual: typeToArbitrary<-3>(), expected: fc.constant(-3) })
+define({ actual: typeToArbitrary<-3.14>(), expected: fc.constant(-3.14) })
 
+// Bigints
 define({ actual: typeToArbitrary<bigint>(), expected: fc.bigInt() })
-
+define({ actual: typeToArbitrary<0n>(), expected: fc.constant(0n) })
 define({ actual: typeToArbitrary<1n>(), expected: fc.constant(1n) })
+define({ actual: typeToArbitrary<42n>(), expected: fc.constant(42n) })
+define({ actual: typeToArbitrary<-3n>(), expected: fc.constant(-3n) })
 
+// Strings
 define({ actual: typeToArbitrary<string>(), expected: fc.string() })
-
 define({
   actual: typeToArbitrary<'Hello World!'>(),
   expected: fc.constant(`Hello World!`),
 })
+define({
+  actual: typeToArbitrary<`Hello World!`>(),
+  expected: fc.constant(`Hello World!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${undefined}!`>(),
+  expected: fc.constant(`Hello undefined!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${null}!`>(),
+  expected: fc.constant(`Hello null!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${boolean}!`>(),
+  expected: fc.stringMatching(/^Hello (?:false|true)!$/u),
+})
+define({
+  actual: typeToArbitrary<`Hello ${false}!`>(),
+  expected: fc.constant(`Hello false!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${true}!`>(),
+  expected: fc.constant(`Hello true!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${true}!`>(),
+  expected: fc.constant(`Hello true!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${number}!`>(),
+  expected: fc.stringMatching(
+    /^Hello (?:\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\s*)!$/u,
+  ),
+})
+define({
+  actual: typeToArbitrary<`Hello ${42}!`>(),
+  expected: fc.constant(`Hello 42!`),
+})
+define({
+  actual: typeToArbitrary<`Hello ${bigint}!`>(),
+  expected: fc.stringMatching(
+    /^Hello (?:0[bB][01]+|0[oO][0-7]+|0[xX][\da-fA-F]+|0|[1-9]\d*)!$/u,
+  ),
+})
+define({
+  actual: typeToArbitrary<`Hello ${42n}!`>(),
+  expected: fc.constant(`Hello 42!`),
+})
+define({
+  actual: typeToArbitrary<`${string}`>(),
+  expected: fc.string(),
+})
+define({
+  actual: typeToArbitrary<`Hello ${string}!`>(),
+  expected: fc.stringMatching(/^Hello (?:.|\n)*!$/u),
+})
 
+// Symbols
 define({
   actual: typeToArbitrary<symbol>(),
   expected: fc.string().map(Symbol),
   stringify: true,
 })
-
 const _symbol: unique symbol = Symbol('unique')
-
 define({
   actual: typeToArbitrary<typeof _symbol>(),
   expected: fc.string().map(Symbol),

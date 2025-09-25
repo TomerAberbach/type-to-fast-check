@@ -132,6 +132,13 @@ define({
   stringify: true,
 })
 
+define({
+  // eslint-disable-next-line typescript/no-unsafe-function-type
+  actual: typeToArbitrary<Function>(),
+  expected: fc.func(fc.anything()),
+  stringify: true,
+})
+
 enum StringEnum {
   B = 'b',
   A = 'a',

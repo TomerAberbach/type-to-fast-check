@@ -104,12 +104,14 @@ const normalizeConstantFromArbitrary = (
       if (constants.has(false) && constants.has(true)) {
         constants.delete(false)
         constants.delete(true)
-        return normalizeArbitrary(
-          oneofArbitrary([
-            booleanArbitrary(),
-            constantFromArbitrary([...constants]),
-          ]),
-        )
+        return constants.size === 0
+          ? booleanArbitrary()
+          : normalizeArbitrary(
+              oneofArbitrary([
+                booleanArbitrary(),
+                constantFromArbitrary([...constants]),
+              ]),
+            )
       }
 
       return constantFromArbitrary([...constants])

@@ -5,6 +5,7 @@ import {
   constantArbitrary,
   constantFromArbitrary,
   funcArbitrary,
+  neverArbitrary,
   oneofArbitrary,
   optionArbitrary,
   recordArbitrary,
@@ -82,7 +83,7 @@ const normalizeConstantFromArbitrary = (
   )
   switch (constants.size) {
     case 0:
-      throw new Error(`Unexpected number of constants`)
+      return neverArbitrary()
     case 1:
       return constantArbitrary(constants.values().next().value)
     default:
@@ -140,7 +141,7 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
 
   switch (variants.size) {
     case 0:
-      throw new Error(`Unexpected number of variants`)
+      return neverArbitrary()
     case 1:
       return variants.values().next().value!
     default:

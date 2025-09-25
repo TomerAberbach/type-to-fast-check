@@ -44,6 +44,10 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
       return fcCall(`bigInt`)
     case `string`:
       return fcCall(`string`)
+    case `stringMatching`:
+      return fcCall(`stringMatching`, [
+        ts.factory.createRegularExpressionLiteral(`/^${arbitrary.regex}$/u`),
+      ])
     case `symbol`:
       return ts.factory.createCallExpression(
         ts.factory.createPropertyAccessExpression(
@@ -102,7 +106,12 @@ const literal = (value: unknown): ts.Expression => {
     case `boolean`:
       return value ? ts.factory.createTrue() : ts.factory.createFalse()
     case `number`:
-      return ts.factory.createNumericLiteral(value)
+      return value >= 0
+        ? ts.factory.createNumericLiteral(value)
+        : ts.factory.createPrefixUnaryExpression(
+            ts.SyntaxKind.MinusToken,
+            ts.factory.createNumericLiteral(Math.abs(value)),
+          )
     case `bigint`:
       return ts.factory.createBigIntLiteral(`${value}n`)
     case `string`:

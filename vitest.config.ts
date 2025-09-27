@@ -14,5 +14,7 @@ export default defineConfig({
         testsToRun: () => `./src/index.test.ts`,
       },
     ],
+    // https://github.com/vitest-dev/vitest/discussions/6511#discussioncomment-13171598
+    pool: process.env.GITHUB_ACTIONS === `true` ? `threads` : undefined,
   },
 })

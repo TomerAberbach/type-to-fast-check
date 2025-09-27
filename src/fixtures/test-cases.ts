@@ -1,6 +1,5 @@
 /* eslint-disable typescript/no-unsafe-function-type */
 /* eslint-disable typescript/array-type */
-/* eslint-disable security/detect-unsafe-regex */
 /* eslint-disable typescript/no-unnecessary-template-expression */
 /* eslint-disable typescript/no-invalid-void-type */
 /* eslint-disable typescript/no-redundant-type-constituents */
@@ -13,7 +12,7 @@ declare const typeToArbitrary: <T>() => fc.Arbitrary<T>
 type TestCase<T = unknown> = {
   actual: fc.Arbitrary<T>
   expected: fc.Arbitrary<T>
-  stringify?: boolean
+  roundtrippable?: boolean
 }
 
 const testCases: TestCase[] = []
@@ -22,7 +21,7 @@ const testCases: TestCase[] = []
 const define = <T>(testCase: {
   actual: fc.Arbitrary<T>
   expected: fc.Arbitrary<T>
-  stringify?: boolean
+  roundtrippable?: boolean
 }) => {
   testCases.push(testCase)
 }
@@ -32,7 +31,11 @@ const neverArb = fc.constant(`never`).map(message => {
 })
 
 // Never
-define({ actual: typeToArbitrary<never>(), expected: neverArb })
+define({
+  actual: typeToArbitrary<never>(),
+  expected: neverArb,
+  roundtrippable: false,
+})
 
 // Undefined
 define({ actual: typeToArbitrary<void>(), expected: fc.constant(undefined) })
@@ -82,7 +85,7 @@ define({
 })
 define({
   actual: typeToArbitrary<`Hello ${boolean}!`>(),
-  expected: fc.stringMatching(/^Hello (?:false|true)!$/u),
+  expected: fc.constantFrom(`Hello false!`, `Hello true!`),
 })
 define({
   actual: typeToArbitrary<`Hello ${false}!`>(),
@@ -98,9 +101,7 @@ define({
 })
 define({
   actual: typeToArbitrary<`Hello ${number}!`>(),
-  expected: fc.stringMatching(
-    /^Hello (?:\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\s*)!$/u,
-  ),
+  expected: fc.double().map(number => `Hello ${number}!`),
 })
 define({
   actual: typeToArbitrary<`Hello ${42}!`>(),
@@ -108,9 +109,7 @@ define({
 })
 define({
   actual: typeToArbitrary<`Hello ${bigint}!`>(),
-  expected: fc.stringMatching(
-    /^Hello (?:0[bB][01]+|0[oO][0-7]+|0[xX][\da-fA-F]+|0|[1-9]\d*)!$/u,
-  ),
+  expected: fc.bigInt().map(bigInt => `Hello ${bigInt}!`),
 })
 define({
   actual: typeToArbitrary<`Hello ${42n}!`>(),
@@ -122,20 +121,26 @@ define({
 })
 define({
   actual: typeToArbitrary<`Hello ${string}!`>(),
-  expected: fc.stringMatching(/^Hello (?:.|\n)*!$/u),
+  expected: fc.string().map(string => `Hello ${string}!`),
+})
+define({
+  actual: typeToArbitrary<`${string} ${number} ${string}`>(),
+  expected: fc
+    .tuple(fc.string(), fc.double(), fc.string())
+    .map(value => `${value[0]} ${value[1]} ${value[2]}`),
 })
 
 // Symbol
 define({
   actual: typeToArbitrary<symbol>(),
   expected: fc.string().map(Symbol),
-  stringify: true,
+  roundtrippable: false,
 })
 const _symbol: unique symbol = Symbol('unique')
 define({
   actual: typeToArbitrary<typeof _symbol>(),
   expected: fc.string().map(Symbol),
-  stringify: true,
+  roundtrippable: false,
 })
 
 // Array
@@ -190,12 +195,12 @@ define({
 define({
   actual: typeToArbitrary<() => string>(),
   expected: fc.func(fc.string()),
-  stringify: true,
+  roundtrippable: false,
 })
 define({
   actual: typeToArbitrary<Function>(),
   expected: fc.func(fc.anything()),
-  stringify: true,
+  roundtrippable: false,
 })
 
 // Enum
@@ -206,11 +211,15 @@ enum StringEnum {
 }
 define({
   actual: typeToArbitrary<StringEnum>(),
-  expected: fc.constantFrom(`a`, `b`, `c`),
+  expected: fc.constantFrom(StringEnum.A, StringEnum.B, StringEnum.C),
+  // TODO(#17): Remove this once enums are referenced at runtime.
+  roundtrippable: false,
 })
 define({
   actual: typeToArbitrary<StringEnum.C>(),
-  expected: fc.constant(`c`),
+  expected: fc.constant(StringEnum.C),
+  // TODO(#17): Remove this once enums are referenced at runtime.
+  roundtrippable: false,
 })
 enum IntEnum {
   B = 1,
@@ -296,10 +305,12 @@ define({ actual: typeToArbitrary<string | never>(), expected: fc.string() })
 define({
   actual: (<T>() => typeToArbitrary<T>())(),
   expected: fc.anything(),
+  roundtrippable: false,
 })
 define({
   actual: (<T extends string>() => typeToArbitrary<T>())(),
   expected: fc.string(),
+  roundtrippable: false,
 })
 
 // Unknown

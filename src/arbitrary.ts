@@ -8,7 +8,7 @@ export type Arbitrary =
   | DoubleArbitrary
   | BigIntArbitrary
   | StringArbitrary
-  | StringMatchingArbitrary
+  | TemplateArbitrary
   | SymbolArbitrary
   | ArrayArbitrary
   | TupleArbitrary
@@ -72,14 +72,14 @@ export type StringArbitrary = {
 export const stringArbitrary = (): StringArbitrary =>
   memoize({ type: `string` })
 
-export type StringMatchingArbitrary = {
-  type: `stringMatching`
-  regex: string
+export type TemplateArbitrary = {
+  type: `template`
+  segments: (string | Arbitrary)[]
 }
 
-export const stringMatchingArbitrary = (
-  regex: string,
-): StringMatchingArbitrary => memoize({ type: `stringMatching`, regex })
+export const templateArbitrary = (
+  segments: (string | Arbitrary)[],
+): TemplateArbitrary => memoize({ type: `template`, segments })
 
 export type SymbolArbitrary = {
   type: `symbol`
@@ -186,8 +186,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, arbitrary.value])
     case `option`:
       return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
-    case `stringMatching`:
-      return keyalesce([arbitrary.type, arbitrary.regex])
+    case `template`:
+      return keyalesce([arbitrary.type, ...arbitrary.segments])
     case `array`:
       return keyalesce([arbitrary.type, arbitrary.items])
     case `tuple`:

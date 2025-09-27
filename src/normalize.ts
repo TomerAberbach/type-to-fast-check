@@ -9,6 +9,7 @@ import {
   oneofArbitrary,
   optionArbitrary,
   recordArbitrary,
+  templateArbitrary,
   tupleArbitrary,
 } from './arbitrary.ts'
 import type {
@@ -19,6 +20,7 @@ import type {
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
+  TemplateArbitrary,
   TupleArbitrary,
 } from './arbitrary.ts'
 import { compareConstants } from './sort.ts'
@@ -31,13 +33,14 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
     case `double`:
     case `bigInt`:
     case `string`:
-    case `stringMatching`:
     case `symbol`:
     case `object`:
     case `anything`:
       return arbitrary
     case `option`:
       return normalizeOptionArbitrary(arbitrary)
+    case `template`:
+      return normalizeTemplateArbitrary(arbitrary)
     case `array`:
       return normalizeArrayArbitrary(arbitrary)
     case `tuple`:
@@ -55,6 +58,79 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
 
 const normalizeOptionArbitrary = (arbitrary: OptionArbitrary): Arbitrary =>
   normalizeArbitrary(oneofArbitrary(spreadUnionArbitraries(arbitrary)))
+
+const normalizeTemplateArbitrary = (
+  arbitrary: TemplateArbitrary,
+): Arbitrary => {
+  const flattenedSegments: (string | Arbitrary)[] = []
+  for (let segment of arbitrary.segments) {
+    if (typeof segment !== `string`) {
+      segment = normalizeArbitrary(segment)
+      switch (segment.type) {
+        case `never`:
+          return neverArbitrary()
+        case `constant`:
+          segment = String(segment.value)
+          break
+        case `template`:
+          flattenedSegments.push(...segment.segments)
+          break
+        case `option`:
+        case `boolean`:
+        case `double`:
+        case `bigInt`:
+        case `string`:
+        case `symbol`:
+        case `array`:
+        case `tuple`:
+        case `record`:
+        case `object`:
+        case `func`:
+        case `constantFrom`:
+        case `oneof`:
+        case `anything`:
+          break
+      }
+    }
+
+    flattenedSegments.push(segment)
+  }
+
+  const normalizedSegments: (string | Arbitrary)[] = []
+  for (const segment of flattenedSegments) {
+    if (typeof segment !== `string`) {
+      normalizedSegments.push(segment)
+      continue
+    }
+
+    if (!segment) {
+      continue
+    }
+
+    if (normalizedSegments.length === 0) {
+      normalizedSegments.push(segment)
+      continue
+    }
+
+    const lastSegment = normalizedSegments.at(-1)
+    if (typeof lastSegment === `string`) {
+      normalizedSegments[normalizedSegments.length - 1] = lastSegment + segment
+    } else {
+      normalizedSegments.push(segment)
+    }
+  }
+
+  switch (normalizedSegments.length) {
+    case 0:
+      return constantArbitrary(``)
+    case 1: {
+      const segment = normalizedSegments[0]!
+      return typeof segment === `string` ? constantArbitrary(segment) : segment
+    }
+    default:
+      return templateArbitrary(normalizedSegments)
+  }
+}
 
 const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
   arrayArbitrary(normalizeArbitrary(arbitrary.items))
@@ -199,7 +275,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `double`:
     case `bigInt`:
     case `string`:
-    case `stringMatching`:
+    case `template`:
     case `symbol`:
     case `array`:
     case `tuple`:

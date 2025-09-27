@@ -1,8 +1,8 @@
 import ts from 'typescript'
 
-export const fcCall = (
+export const fcCallExpression = (
   methodName: string,
-  args: ts.Expression[] = [],
+  argExpressions: ts.Expression[] = [],
 ): ts.CallExpression =>
   ts.factory.createCallExpression(
     ts.factory.createPropertyAccessExpression(
@@ -10,7 +10,7 @@ export const fcCall = (
       ts.factory.createIdentifier(methodName),
     ),
     undefined,
-    args,
+    argExpressions,
   )
 
 export const addFastCheckImport = (
@@ -33,4 +33,4 @@ export const addFastCheckImport = (
   ])
 }
 
-export const FAST_CHECK_IDENTIFIER_NAME = `TYPE_TO_ARBITRARY_SUPER_SECRET_NAME`
+export const FAST_CHECK_IDENTIFIER_NAME = `ttfc`

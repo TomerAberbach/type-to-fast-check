@@ -12,8 +12,8 @@ import {
   oneofArbitrary,
   recordArbitrary,
   stringArbitrary,
-  stringMatchingArbitrary,
   symbolArbitrary,
+  templateArbitrary,
   tupleArbitrary,
 } from './arbitrary.ts'
 import type { Arbitrary } from './arbitrary.ts'
@@ -67,101 +67,21 @@ const generateStringLiteralArbitrary = (type: ts.Type) =>
 const generateTemplateLiteralArbitrary = (
   type: ts.Type,
   typeChecker: ts.TypeChecker,
-) => stringMatchingArbitrary(generateRegex(type, typeChecker))
-
-const generateRegex = (type: ts.Type, typeChecker: ts.TypeChecker) => {
-  console.log(typeChecker.typeToString(type))
-  for (const [flag, generateRegex] of regexGenerators) {
-    if (type.flags & flag) {
-      return generateRegex(type, typeChecker)
-    }
-  }
-  return ``
-}
-
-const generateUndefinedRegex = () => `undefined`
-
-const generateNullRegex = () => `null`
-
-const generateBooleanRegex = () => `false|true`
-
-const generateBooleanLiteralRegex = (
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-) => typeChecker.typeToString(type)
-
-// Based on the following code here in `isValidNumberString(value, false)` in:
-// https://raw.githubusercontent.com/microsoft/TypeScript/refs/heads/main/src/compiler/checker.ts
-const generateNumberRegex = () =>
-  `\\s*[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?\\s*`
-
-const generateNumberLiteralRegex = (type: ts.Type) =>
-  String((type as ts.NumberLiteralType).value)
-
-const generateBigIntRegex = () =>
-  `0[bB][01]+|0[oO][0-7]+|0[xX][\\da-fA-F]+|0|[1-9]\\d*`
-
-const generateBigIntLiteralRegex = (type: ts.Type) => {
-  const { value } = type as ts.BigIntLiteralType
-  return (value.negative ? `-` : ``) + value.base10Value
-}
-
-const generateStringRegex = () => `(?:.|\\n)*`
-
-const generateStringLiteralRegex = (type: ts.Type) =>
-  escapeRegex((type as ts.StringLiteralType).value)
-
-const escapeRegex = (string: string) =>
-  string.replaceAll(/[$()*+.?[\\\]^{|}]/gu, `\\$&`)
-
-const generateTemplateLiteralRegex = (
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
 ) => {
   const { texts, types } = type as ts.TemplateLiteralType
 
-  const regexPieces: string[] = []
+  const template: (string | Arbitrary)[] = []
   for (const [index, text] of texts.entries()) {
-    regexPieces.push(text)
+    template.push(text)
 
     if (index >= types.length) {
       continue
     }
 
-    let regex = generateRegex(types[index]!, typeChecker)
-    if (concatenatingRegexRequiresParenthesizing(regex)) {
-      regex = `(?:${regex})`
-    }
-    regexPieces.push(regex)
+    template.push(generateArbitrary(types[index]!, typeChecker))
   }
 
-  return regexPieces.join(``)
-}
-
-const generateUnionRegex = (
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-): string =>
-  (type as ts.UnionType).types
-    .map(type => generateRegex(type, typeChecker))
-    .join(`|`)
-
-const concatenatingRegexRequiresParenthesizing = (regex: string): boolean => {
-  // Remove escaped characters to avoid false positives.
-  regex = regex.replaceAll(/\\./gu, ``)
-
-  let depth = 0
-  for (const c of regex) {
-    if (c === `(`) {
-      depth++
-    } else if (c === `)`) {
-      depth--
-    } else if (c === `|` && depth === 0) {
-      return true
-    }
-  }
-
-  return false
+  return templateArbitrary(template)
 }
 
 const generateSymbolArbitrary = () => symbolArbitrary()
@@ -177,6 +97,7 @@ const generateObjectArbitrary = (
     return referenceArbitrary
   }
 
+  // TODO(#20): Support call signatures on objects with properties.
   const callSignatures = typeChecker.getSignaturesOfType(
     type,
     ts.SignatureKind.Call,
@@ -293,6 +214,7 @@ const generateTypeParameterArbitrary = (
     : anythingArbitrary()
 }
 
+// TODO(#21): Support intersections.
 const typeGenerators = new Map<
   ts.TypeFlags,
   (type: ts.Type, typeChecker: ts.TypeChecker) => Arbitrary
@@ -320,28 +242,6 @@ const typeGenerators = new Map<
   [ts.TypeFlags.TypeParameter, generateTypeParameterArbitrary],
 ])
 
-// TODO
-// Intersection = 2097152,
-// Index = 4194304,
-// IndexedAccess = 8388608,
-// Conditional = 16777216,
-// Substitution = 33554432,
-// NonPrimitive = 67108864,
-// TemplateLiteral = 134217728,
-// StringMapping = 268435456,
-// Literal = 2944,
-// Unit = 109472,
-// Freshable = 2976,
-// StringOrNumberLiteral = 384,
-// PossiblyFalsy = 117724,
-// StructuredType = 3670016,
-// TypeVariable = 8650752,
-// InstantiableNonPrimitive = 58982400,
-// InstantiablePrimitive = 406847488,
-// Instantiable = 465829888,
-// StructuredOrInstantiable = 469499904,
-// Narrowable = 536624127,
-
 const objectTypeGenerators = new Map<
   ts.ObjectFlags,
   (type: ts.ObjectType, typeChecker: ts.TypeChecker) => Arbitrary
@@ -357,24 +257,6 @@ const builtinTypeGenerators = new Map<
   [`Array`, generateArrayArbitrary],
   [`ReadonlyArray`, generateArrayArbitrary],
   [`Function`, generateFunctionArbitrary],
-])
-
-const regexGenerators = new Map<
-  ts.TypeFlags,
-  (type: ts.Type, typeChecker: ts.TypeChecker) => string
->([
-  [ts.TypeFlags.Undefined, generateUndefinedRegex],
-  [ts.TypeFlags.Null, generateNullRegex],
-  [ts.TypeFlags.Boolean, generateBooleanRegex],
-  [ts.TypeFlags.BooleanLiteral, generateBooleanLiteralRegex],
-  [ts.TypeFlags.Number, generateNumberRegex],
-  [ts.TypeFlags.NumberLike, generateNumberLiteralRegex],
-  [ts.TypeFlags.BigInt, generateBigIntRegex],
-  [ts.TypeFlags.BigIntLike, generateBigIntLiteralRegex],
-  [ts.TypeFlags.String, generateStringRegex],
-  [ts.TypeFlags.StringLiteral, generateStringLiteralRegex],
-  [ts.TypeFlags.TemplateLiteral, generateTemplateLiteralRegex],
-  [ts.TypeFlags.Union, generateUnionRegex],
 ])
 
 export default generateArbitrary

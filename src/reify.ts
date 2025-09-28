@@ -4,6 +4,7 @@ import type {
   ArrayArbitrary,
   ConstantArbitrary,
   ConstantFromArbitrary,
+  DoubleArbitrary,
   FuncArbitrary,
   OneofArbitrary,
   OptionArbitrary,
@@ -22,7 +23,7 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
     case `boolean`:
       return booleanArbitraryExpression()
     case `double`:
-      return doubleArbitraryExpression()
+      return doubleArbitraryExpression(arbitrary)
     case `bigInt`:
       return bigIntArbitraryExpression()
     case `string`:
@@ -74,7 +75,11 @@ const constantArbitraryExpression = (
 
 const booleanArbitraryExpression = () => fcCallExpression(`boolean`)
 
-const doubleArbitraryExpression = () => fcCallExpression(`double`)
+const doubleArbitraryExpression = (arbitrary: DoubleArbitrary) =>
+  fcCallExpression(
+    `double`,
+    arbitrary.constraints ? [literalExpression(arbitrary.constraints)] : [],
+  )
 
 const bigIntArbitraryExpression = () => fcCallExpression(`bigInt`)
 

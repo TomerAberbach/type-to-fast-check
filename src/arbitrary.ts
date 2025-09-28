@@ -1,3 +1,4 @@
+import type * as fc from 'fast-check'
 import keyalesce from 'keyalesce'
 
 export type Arbitrary =
@@ -53,10 +54,12 @@ export const booleanArbitrary = (): BooleanArbitrary =>
 
 export type DoubleArbitrary = {
   type: `double`
+  constraints?: fc.DoubleConstraints
 }
 
-export const doubleArbitrary = (): DoubleArbitrary =>
-  memoize({ type: `double` })
+export const doubleArbitrary = (
+  constraints?: fc.DoubleConstraints,
+): DoubleArbitrary => memoize({ type: `double`, constraints })
 
 export type BigIntArbitrary = {
   type: `bigInt`
@@ -175,7 +178,6 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
   switch (arbitrary.type) {
     case `never`:
     case `boolean`:
-    case `double`:
     case `bigInt`:
     case `string`:
     case `symbol`:
@@ -186,6 +188,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, arbitrary.value])
     case `option`:
       return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
+    case `double`:
+      return keyalesce([arbitrary.type, JSON.stringify(arbitrary.constraints)])
     case `template`:
       return keyalesce([arbitrary.type, ...arbitrary.segments])
     case `array`:

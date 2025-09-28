@@ -5,292 +5,137 @@ import * as ttfc from "fast-check";
 /* eslint-disable typescript/no-invalid-void-type */
 /* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
-import * as fc from 'fast-check';
+import type * as fc from 'fast-check';
 declare const typeToArbitrary: <T>() => fc.Arbitrary<T>;
 type TestCase<T = unknown> = {
-    actual: fc.Arbitrary<T>;
-    expected: fc.Arbitrary<T>;
-    roundtrippable?: boolean;
+    arb: fc.Arbitrary<T>;
+    typecheck?: boolean;
 };
 const testCases: TestCase[] = [];
-/** For type-safety between actual and expected arbitrary types. */
-const define = <T>(testCase: {
-    actual: fc.Arbitrary<T>;
-    expected: fc.Arbitrary<T>;
-    roundtrippable?: boolean;
+const test = (testCase: {
+    arb: fc.Arbitrary<unknown>;
+    typecheck?: boolean;
 }) => {
     testCases.push(testCase);
 };
-const neverArb = fc.constant(`never`).map(message => {
-    throw new Error(message);
-});
 // Never
-define({
-    actual: ttfc.constant("never").map(value => { throw new globalThis.Error(value); }),
-    expected: neverArb,
-    roundtrippable: false,
-});
+test({ arb: /* never */ ttfc.constant("never").map(value => { throw new globalThis.Error(value); }), typecheck: false });
 // Undefined
-define({ actual: ttfc.constant(undefined), expected: fc.constant(undefined) });
-define({
-    actual: ttfc.constant(undefined),
-    expected: fc.constant(undefined),
-});
+test({ arb: /* void */ ttfc.constant(undefined) });
+test({ arb: /* undefined */ ttfc.constant(undefined) });
 // Boolean
-define({ actual: ttfc.boolean(), expected: fc.boolean() });
-define({ actual: ttfc.constant(false), expected: fc.constant(false) });
-define({ actual: ttfc.constant(true), expected: fc.constant(true) });
+test({ arb: /* boolean */ ttfc.boolean() });
+test({ arb: /* false */ ttfc.constant(false) });
+test({ arb: /* true */ ttfc.constant(true) });
 // Number
-define({ actual: ttfc.double(), expected: fc.double() });
-define({ actual: ttfc.constant(0), expected: fc.constant(0) });
-define({ actual: ttfc.constant(1), expected: fc.constant(1) });
-define({ actual: ttfc.constant(42), expected: fc.constant(42) });
-define({ actual: ttfc.constant(1.5), expected: fc.constant(1.5) });
-define({ actual: ttfc.constant(-3), expected: fc.constant(-3) });
-define({ actual: ttfc.constant(-3.14), expected: fc.constant(-3.14) });
+test({ arb: /* number */ ttfc.double() });
+test({ arb: /* 0 */ ttfc.constant(0) });
+test({ arb: /* 1 */ ttfc.constant(1) });
+test({ arb: /* 42 */ ttfc.constant(42) });
+test({ arb: /* 1.5 */ ttfc.constant(1.5) });
+test({ arb: /* -3 */ ttfc.constant(-3) });
+test({ arb: /* -3.14 */ ttfc.constant(-3.14) });
 // Bigint
-define({ actual: ttfc.bigInt(), expected: fc.bigInt() });
-define({ actual: ttfc.constant(0n), expected: fc.constant(0n) });
-define({ actual: ttfc.constant(1n), expected: fc.constant(1n) });
-define({ actual: ttfc.constant(42n), expected: fc.constant(42n) });
-define({ actual: ttfc.constant(-3n), expected: fc.constant(-3n) });
+test({ arb: /* bigint */ ttfc.bigInt() });
+test({ arb: /* 0n */ ttfc.constant(0n) });
+test({ arb: /* 1n */ ttfc.constant(1n) });
+test({ arb: /* 42n */ ttfc.constant(42n) });
+test({ arb: /* -3n */ ttfc.constant(-3n) });
 // String
-define({ actual: ttfc.string(), expected: fc.string() });
-define({
-    actual: ttfc.constant("Hello World!"),
-    expected: fc.constant(`Hello World!`),
-});
-define({
-    actual: ttfc.constant("Hello World!"),
-    expected: fc.constant(`Hello World!`),
-});
-define({
-    actual: ttfc.constant("Hello undefined!"),
-    expected: fc.constant(`Hello undefined!`),
-});
-define({
-    actual: ttfc.constant("Hello null!"),
-    expected: fc.constant(`Hello null!`),
-});
-define({
-    actual: ttfc.constantFrom("Hello false!", "Hello true!"),
-    expected: fc.constantFrom(`Hello false!`, `Hello true!`),
-});
-define({
-    actual: ttfc.constant("Hello false!"),
-    expected: fc.constant(`Hello false!`),
-});
-define({
-    actual: ttfc.constant("Hello true!"),
-    expected: fc.constant(`Hello true!`),
-});
-define({
-    actual: ttfc.constant("Hello true!"),
-    expected: fc.constant(`Hello true!`),
-});
-define({
-    actual: ttfc.double().map(value => `Hello ${value}!`),
-    expected: fc.double().map(number => `Hello ${number}!`),
-});
-define({
-    actual: ttfc.constant("Hello 42!"),
-    expected: fc.constant(`Hello 42!`),
-});
-define({
-    actual: ttfc.bigInt().map(value => `Hello ${value}!`),
-    expected: fc.bigInt().map(bigInt => `Hello ${bigInt}!`),
-});
-define({
-    actual: ttfc.constant("Hello 42!"),
-    expected: fc.constant(`Hello 42!`),
-});
-define({
-    actual: ttfc.string(),
-    expected: fc.string(),
-});
-define({
-    actual: ttfc.string().map(value => `Hello ${value}!`),
-    expected: fc.string().map(string => `Hello ${string}!`),
-});
-define({
-    actual: ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.string()).map(value => `${value[0]} ${value[1]} ${value[2]}`),
-    expected: fc
-        .tuple(fc.string(), fc.double(), fc.string())
-        .map(value => `${value[0]} ${value[1]} ${value[2]}`),
-});
+test({ arb: /* string */ ttfc.string() });
+test({ arb: /* "Hello World!" */ ttfc.constant("Hello World!") });
+test({ arb: /* "Hello World!" */ ttfc.constant("Hello World!") });
+test({ arb: /* "Hello undefined!" */ ttfc.constant("Hello undefined!") });
+test({ arb: /* "Hello null!" */ ttfc.constant("Hello null!") });
+test({ arb: /* "Hello false!" | "Hello true!" */ ttfc.constantFrom("Hello false!", "Hello true!") });
+test({ arb: /* "Hello false!" */ ttfc.constant("Hello false!") });
+test({ arb: /* "Hello true!" */ ttfc.constant("Hello true!") });
+test({ arb: /* "Hello true!" */ ttfc.constant("Hello true!") });
+test({ arb: /* `Hello ${number}!` */ ttfc.double({ noDefaultInfinity: true, noNaN: true }).map(value => `Hello ${value}!`) });
+test({ arb: /* "Hello 42!" */ ttfc.constant("Hello 42!") });
+test({ arb: /* `Hello ${bigint}!` */ ttfc.bigInt().map(value => `Hello ${value}!`) });
+test({ arb: /* "Hello 42!" */ ttfc.constant("Hello 42!") });
+test({ arb: /* string */ ttfc.string() });
+test({ arb: /* `Hello ${string}!` */ ttfc.string().map(value => `Hello ${value}!`) });
+test({ arb: /* `${string} - ${number} - ${string}` */ ttfc.tuple(ttfc.string(), ttfc.double({ noDefaultInfinity: true, noNaN: true }), ttfc.string()).map(value => `${value[0]} - ${value[1]} - ${value[2]}`) });
 // Symbol
-define({
-    actual: ttfc.string().map(value => globalThis.Symbol(value)),
-    expected: fc.string().map(Symbol),
-    roundtrippable: false,
-});
+test({ arb: /* symbol */ ttfc.string().map(value => globalThis.Symbol(value)) });
 const _symbol: unique symbol = Symbol('unique');
-define({
-    actual: ttfc.string().map(value => globalThis.Symbol(value)),
-    expected: fc.string().map(Symbol),
-    roundtrippable: false,
-});
+test({ arb: /* unique symbol */ ttfc.string().map(value => globalThis.Symbol(value)), typecheck: false });
 // Array
-define({
-    actual: ttfc.array(ttfc.string()),
-    expected: fc.array(fc.string()),
-});
-define({
-    actual: ttfc.array(ttfc.string()),
-    expected: fc.array(fc.string()),
-});
-define({
-    actual: ttfc.array(ttfc.string()),
-    expected: fc.array(fc.string()),
-});
-define({
-    actual: ttfc.array(ttfc.string()),
-    expected: fc.array(fc.string()),
-});
+test({ arb: /* string[] */ ttfc.array(ttfc.string()) });
+test({ arb: /* string[] */ ttfc.array(ttfc.string()) });
+test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
+test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
 // Tuple
-define({
-    actual: ttfc.tuple(ttfc.string(), ttfc.double()),
-    expected: fc.tuple(fc.string(), fc.double()),
-});
+test({ arb: /* [string, number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
 // Object
-define({
-    actual: ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.double() }),
-    expected: fc.record({ a: fc.string(), b: fc.double() }),
-});
-define({
-    actual: ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }),
-    expected: fc.record({
-        a: fc.string(),
-        b: fc.option(fc.double(), { nil: undefined }),
-    }),
-});
-define({
-    actual: ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }),
-    expected: fc.record({ a: fc.string(), b: fc.option(fc.double(), { nil: undefined }) }, { requiredKeys: [`a`] }),
-});
-define({
-    actual: ttfc.object(),
-    expected: fc.object(),
-});
+test({ arb: /* { a: string; b: number; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.double() }) });
+test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }) });
+test({ arb: /* { a: string; b?: number | undefined; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+test({ arb: /* object */ ttfc.object() });
 // Function
-define({
-    actual: ttfc.func(ttfc.string()),
-    expected: fc.func(fc.string()),
-    roundtrippable: false,
-});
-define({
-    actual: ttfc.func(ttfc.anything()),
-    expected: fc.func(fc.anything()),
-    roundtrippable: false,
-});
+test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
+test({ arb: /* Function */ ttfc.func(ttfc.anything()), typecheck: false });
 // Enum
 enum StringEnum {
     B = 'b',
     A = 'a',
     C = 'c'
 }
-define({
-    actual: ttfc.constantFrom("a", "b", "c"),
-    expected: fc.constantFrom(StringEnum.A, StringEnum.B, StringEnum.C),
+test({
+    arb: /* StringEnum */ ttfc.constantFrom("a", "b", "c"),
     // TODO(#17): Remove this once enums are referenced at runtime.
-    roundtrippable: false,
+    typecheck: false,
 });
-define({
-    actual: ttfc.constant("c"),
-    expected: fc.constant(StringEnum.C),
+test({
+    arb: /* StringEnum.C */ ttfc.constant("c"),
     // TODO(#17): Remove this once enums are referenced at runtime.
-    roundtrippable: false,
+    typecheck: false,
 });
 enum IntEnum {
     B = 1,
     A = 0,
     C = 2
 }
-define({
-    actual: ttfc.constantFrom(0, 1, 2),
-    expected: fc.constantFrom(0, 1, 2),
-});
-define({
-    actual: ttfc.constant(2),
-    expected: fc.constant(2),
-});
+test({ arb: /* IntEnum */ ttfc.constantFrom(0, 1, 2) });
+test({ arb: /* IntEnum.C */ ttfc.constant(2) });
 enum ImplicitIntEnum {
     A,
     B,
     C
 }
-define({
-    actual: ttfc.constantFrom(0, 1, 2),
-    expected: fc.constantFrom(0, 1, 2),
-});
-define({
-    actual: ttfc.constant(1),
-    expected: fc.constant(1),
-});
+test({ arb: /* ImplicitIntEnum */ ttfc.constantFrom(0, 1, 2) });
+test({ arb: /* ImplicitIntEnum.B */ ttfc.constant(1) });
 enum PartiallyImplicitIntEnum {
     A = 4,
     B,
     C = 2,
     D
 }
-define({
-    actual: ttfc.constantFrom(2, 3, 4, 5),
-    expected: fc.constantFrom(2, 3, 4, 5),
-});
-define({
-    actual: ttfc.constant(5),
-    expected: fc.constant(5),
-});
+test({ arb: /* PartiallyImplicitIntEnum */ ttfc.constantFrom(2, 3, 4, 5) });
+test({ arb: /* PartiallyImplicitIntEnum.B */ ttfc.constant(5) });
 // Union
-define({
-    actual: ttfc.boolean(),
-    expected: fc.boolean(),
-});
-define({
-    actual: ttfc.boolean(),
-    expected: fc.boolean(),
-});
-define({
-    actual: ttfc.constantFrom(1, 2, 3, 4),
-    expected: fc.constantFrom(1, 2, 3, 4),
-});
-define({
-    actual: ttfc.constantFrom(1n, 2n, 3n, 4n),
-    expected: fc.constantFrom(1n, 2n, 3n, 4n),
-});
-define({
-    actual: ttfc.constantFrom("a", "b", "c", "d"),
-    expected: fc.constantFrom(`a`, `b`, `c`, `d`),
-});
-define({
-    actual: ttfc.option(ttfc.string(), { nil: undefined }),
-    expected: fc.option(fc.string(), { nil: undefined }),
-});
-define({
-    actual: ttfc.option(ttfc.string()),
-    expected: fc.option(fc.string()),
-});
-define({
-    actual: ttfc.oneof(ttfc.string(), ttfc.constantFrom(null, undefined)),
-    expected: fc.oneof(fc.string(), fc.constantFrom(null, undefined)),
-});
-define({
-    actual: ttfc.oneof(ttfc.string(), ttfc.double()),
-    expected: fc.oneof(fc.string(), fc.double()),
-});
-define({ actual: ttfc.string(), expected: fc.string() });
+test({ arb: /* boolean */ ttfc.boolean() });
+test({ arb: /* boolean */ ttfc.boolean() });
+test({ arb: /* 1 | 3 | 2 | 4 */ ttfc.constantFrom(1, 2, 3, 4) });
+test({ arb: /* 1n | 3n | 2n | 4n */ ttfc.constantFrom(1n, 2n, 3n, 4n) });
+test({ arb: /* "b" | "a" | "d" | "c" */ ttfc.constantFrom("a", "b", "c", "d") });
+test({ arb: /* string | undefined */ ttfc.option(ttfc.string(), { nil: undefined }) });
+test({ arb: /* string | null */ ttfc.option(ttfc.string()) });
+test({ arb: /* string | null | undefined */ ttfc.oneof(ttfc.string(), ttfc.constantFrom(null, undefined)) });
+test({ arb: /* string | number */ ttfc.oneof(ttfc.string(), ttfc.double()) });
+test({ arb: /* string */ ttfc.string() });
 // Type parameter
-define({
-    actual: (<T>() => ttfc.anything())(),
-    expected: fc.anything(),
-    roundtrippable: false,
+test({
+    arb: (<T>() => /* T */ ttfc.anything())(),
+    typecheck: false,
 });
-define({
-    actual: (<T extends string>() => ttfc.string())(),
-    expected: fc.string(),
-    roundtrippable: false,
+test({
+    arb: (<T extends string>() => /* T */ ttfc.string())(),
+    typecheck: false,
 });
 // Unknown
-define({ actual: ttfc.anything(), expected: fc.anything() });
-define({ actual: ttfc.anything(), expected: fc.anything() });
+test({ arb: /* unknown */ ttfc.anything() });
+test({ arb: /* any */ ttfc.anything() });
 export default testCases;

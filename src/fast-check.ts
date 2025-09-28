@@ -33,4 +33,4 @@ export const addFastCheckImport = (
   ])
 }
 
-export const FAST_CHECK_IDENTIFIER_NAME = `ttfc`
+const FAST_CHECK_IDENTIFIER_NAME = `ttfc`

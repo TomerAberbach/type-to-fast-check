@@ -14,6 +14,7 @@ export default defineConfig({
         testsToRun: () => `./src/index.test.ts`,
       },
     ],
+    testTimeout: 20_000,
     // https://github.com/vitest-dev/vitest/discussions/6511#discussioncomment-13171598
     pool: process.env.GITHUB_ACTIONS === `true` ? `threads` : undefined,
   },

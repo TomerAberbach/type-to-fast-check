@@ -58,7 +58,11 @@ const visitTypeToArbitraryCallExpression = (
   const type = typeArguments[0]!
   const arbitrary = generateArbitrary(type, typeChecker)
   const normalizedArbitrary = normalizeArbitrary(arbitrary)
-  return reifyArbitrary(normalizedArbitrary)
+  return ts.addSyntheticLeadingComment(
+    reifyArbitrary(normalizedArbitrary),
+    ts.SyntaxKind.MultiLineCommentTrivia,
+    ` ${typeChecker.typeToString(type)} `,
+  )
 }
 
 export default createTransformer

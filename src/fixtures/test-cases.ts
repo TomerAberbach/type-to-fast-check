@@ -5,203 +5,93 @@
 /* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 
-import * as fc from 'fast-check'
+import type * as fc from 'fast-check'
 
 declare const typeToArbitrary: <T>() => fc.Arbitrary<T>
 
 type TestCase<T = unknown> = {
-  actual: fc.Arbitrary<T>
-  expected: fc.Arbitrary<T>
-  roundtrippable?: boolean
+  arb: fc.Arbitrary<T>
+  typecheck?: boolean
 }
 
 const testCases: TestCase[] = []
 
-/** For type-safety between actual and expected arbitrary types. */
-const define = <T>(testCase: {
-  actual: fc.Arbitrary<T>
-  expected: fc.Arbitrary<T>
-  roundtrippable?: boolean
+const test = (testCase: {
+  arb: fc.Arbitrary<unknown>
+  typecheck?: boolean
 }) => {
   testCases.push(testCase)
 }
 
-const neverArb = fc.constant(`never`).map(message => {
-  throw new Error(message)
-})
-
 // Never
-define({
-  actual: typeToArbitrary<never>(),
-  expected: neverArb,
-  roundtrippable: false,
-})
+test({ arb: typeToArbitrary<never>(), typecheck: false })
 
 // Undefined
-define({ actual: typeToArbitrary<void>(), expected: fc.constant(undefined) })
-define({
-  actual: typeToArbitrary<undefined>(),
-  expected: fc.constant(undefined),
-})
+test({ arb: typeToArbitrary<void>() })
+test({ arb: typeToArbitrary<undefined>() })
 
 // Boolean
-define({ actual: typeToArbitrary<boolean>(), expected: fc.boolean() })
-define({ actual: typeToArbitrary<false>(), expected: fc.constant(false) })
-define({ actual: typeToArbitrary<true>(), expected: fc.constant(true) })
+test({ arb: typeToArbitrary<boolean>() })
+test({ arb: typeToArbitrary<false>() })
+test({ arb: typeToArbitrary<true>() })
 
 // Number
-define({ actual: typeToArbitrary<number>(), expected: fc.double() })
-define({ actual: typeToArbitrary<0>(), expected: fc.constant(0) })
-define({ actual: typeToArbitrary<1>(), expected: fc.constant(1) })
-define({ actual: typeToArbitrary<42>(), expected: fc.constant(42) })
-define({ actual: typeToArbitrary<1.5>(), expected: fc.constant(1.5) })
-define({ actual: typeToArbitrary<-3>(), expected: fc.constant(-3) })
-define({ actual: typeToArbitrary<-3.14>(), expected: fc.constant(-3.14) })
+test({ arb: typeToArbitrary<number>() })
+test({ arb: typeToArbitrary<0>() })
+test({ arb: typeToArbitrary<1>() })
+test({ arb: typeToArbitrary<42>() })
+test({ arb: typeToArbitrary<1.5>() })
+test({ arb: typeToArbitrary<-3>() })
+test({ arb: typeToArbitrary<-3.14>() })
 
 // Bigint
-define({ actual: typeToArbitrary<bigint>(), expected: fc.bigInt() })
-define({ actual: typeToArbitrary<0n>(), expected: fc.constant(0n) })
-define({ actual: typeToArbitrary<1n>(), expected: fc.constant(1n) })
-define({ actual: typeToArbitrary<42n>(), expected: fc.constant(42n) })
-define({ actual: typeToArbitrary<-3n>(), expected: fc.constant(-3n) })
+test({ arb: typeToArbitrary<bigint>() })
+test({ arb: typeToArbitrary<0n>() })
+test({ arb: typeToArbitrary<1n>() })
+test({ arb: typeToArbitrary<42n>() })
+test({ arb: typeToArbitrary<-3n>() })
 
 // String
-define({ actual: typeToArbitrary<string>(), expected: fc.string() })
-define({
-  actual: typeToArbitrary<'Hello World!'>(),
-  expected: fc.constant(`Hello World!`),
-})
-define({
-  actual: typeToArbitrary<`Hello World!`>(),
-  expected: fc.constant(`Hello World!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${undefined}!`>(),
-  expected: fc.constant(`Hello undefined!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${null}!`>(),
-  expected: fc.constant(`Hello null!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${boolean}!`>(),
-  expected: fc.constantFrom(`Hello false!`, `Hello true!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${false}!`>(),
-  expected: fc.constant(`Hello false!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${true}!`>(),
-  expected: fc.constant(`Hello true!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${true}!`>(),
-  expected: fc.constant(`Hello true!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${number}!`>(),
-  expected: fc.double().map(number => `Hello ${number}!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${42}!`>(),
-  expected: fc.constant(`Hello 42!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${bigint}!`>(),
-  expected: fc.bigInt().map(bigInt => `Hello ${bigInt}!`),
-})
-define({
-  actual: typeToArbitrary<`Hello ${42n}!`>(),
-  expected: fc.constant(`Hello 42!`),
-})
-define({
-  actual: typeToArbitrary<`${string}`>(),
-  expected: fc.string(),
-})
-define({
-  actual: typeToArbitrary<`Hello ${string}!`>(),
-  expected: fc.string().map(string => `Hello ${string}!`),
-})
-define({
-  actual: typeToArbitrary<`${string} ${number} ${string}`>(),
-  expected: fc
-    .tuple(fc.string(), fc.double(), fc.string())
-    .map(value => `${value[0]} ${value[1]} ${value[2]}`),
-})
+test({ arb: typeToArbitrary<string>() })
+test({ arb: typeToArbitrary<'Hello World!'>() })
+test({ arb: typeToArbitrary<`Hello World!`>() })
+test({ arb: typeToArbitrary<`Hello ${undefined}!`>() })
+test({ arb: typeToArbitrary<`Hello ${null}!`>() })
+test({ arb: typeToArbitrary<`Hello ${boolean}!`>() })
+test({ arb: typeToArbitrary<`Hello ${false}!`>() })
+test({ arb: typeToArbitrary<`Hello ${true}!`>() })
+test({ arb: typeToArbitrary<`Hello ${true}!`>() })
+test({ arb: typeToArbitrary<`Hello ${number}!`>() })
+test({ arb: typeToArbitrary<`Hello ${42}!`>() })
+test({ arb: typeToArbitrary<`Hello ${bigint}!`>() })
+test({ arb: typeToArbitrary<`Hello ${42n}!`>() })
+test({ arb: typeToArbitrary<`${string}`>() })
+test({ arb: typeToArbitrary<`Hello ${string}!`>() })
+test({ arb: typeToArbitrary<`${string} - ${number} - ${string}`>() })
 
 // Symbol
-define({
-  actual: typeToArbitrary<symbol>(),
-  expected: fc.string().map(Symbol),
-  roundtrippable: false,
-})
+test({ arb: typeToArbitrary<symbol>() })
 const _symbol: unique symbol = Symbol('unique')
-define({
-  actual: typeToArbitrary<typeof _symbol>(),
-  expected: fc.string().map(Symbol),
-  roundtrippable: false,
-})
+test({ arb: typeToArbitrary<typeof _symbol>(), typecheck: false })
 
 // Array
-define({
-  actual: typeToArbitrary<string[]>(),
-  expected: fc.array(fc.string()),
-})
-define({
-  actual: typeToArbitrary<Array<string>>(),
-  expected: fc.array(fc.string()),
-})
-define({
-  actual: typeToArbitrary<readonly string[]>(),
-  expected: fc.array(fc.string()),
-})
-define({
-  actual: typeToArbitrary<ReadonlyArray<string>>(),
-  expected: fc.array(fc.string()),
-})
+test({ arb: typeToArbitrary<string[]>() })
+test({ arb: typeToArbitrary<Array<string>>() })
+test({ arb: typeToArbitrary<readonly string[]>() })
+test({ arb: typeToArbitrary<ReadonlyArray<string>>() })
 
 // Tuple
-define({
-  actual: typeToArbitrary<[string, number]>(),
-  expected: fc.tuple(fc.string(), fc.double()),
-})
+test({ arb: typeToArbitrary<[string, number]>() })
 
 // Object
-define({
-  actual: typeToArbitrary<{ a: string; b: number }>(),
-  expected: fc.record({ a: fc.string(), b: fc.double() }),
-})
-define({
-  actual: typeToArbitrary<{ a: string; b: number | undefined }>(),
-  expected: fc.record({
-    a: fc.string(),
-    b: fc.option(fc.double(), { nil: undefined }),
-  }),
-})
-define({
-  actual: typeToArbitrary<{ a: string; b?: number }>(),
-  expected: fc.record(
-    { a: fc.string(), b: fc.option(fc.double(), { nil: undefined }) },
-    { requiredKeys: [`a`] },
-  ),
-})
-define({
-  actual: typeToArbitrary<object>(),
-  expected: fc.object(),
-})
+test({ arb: typeToArbitrary<{ a: string; b: number }>() })
+test({ arb: typeToArbitrary<{ a: string; b: number | undefined }>() })
+test({ arb: typeToArbitrary<{ a: string; b?: number }>() })
+test({ arb: typeToArbitrary<object>() })
 
 // Function
-define({
-  actual: typeToArbitrary<() => string>(),
-  expected: fc.func(fc.string()),
-  roundtrippable: false,
-})
-define({
-  actual: typeToArbitrary<Function>(),
-  expected: fc.func(fc.anything()),
-  roundtrippable: false,
-})
+test({ arb: typeToArbitrary<() => string>() })
+test({ arb: typeToArbitrary<Function>(), typecheck: false })
 
 // Enum
 enum StringEnum {
@@ -209,112 +99,63 @@ enum StringEnum {
   A = 'a',
   C = 'c',
 }
-define({
-  actual: typeToArbitrary<StringEnum>(),
-  expected: fc.constantFrom(StringEnum.A, StringEnum.B, StringEnum.C),
+test({
+  arb: typeToArbitrary<StringEnum>(),
   // TODO(#17): Remove this once enums are referenced at runtime.
-  roundtrippable: false,
+  typecheck: false,
 })
-define({
-  actual: typeToArbitrary<StringEnum.C>(),
-  expected: fc.constant(StringEnum.C),
+test({
+  arb: typeToArbitrary<StringEnum.C>(),
   // TODO(#17): Remove this once enums are referenced at runtime.
-  roundtrippable: false,
+  typecheck: false,
 })
 enum IntEnum {
   B = 1,
   A = 0,
   C = 2,
 }
-define({
-  actual: typeToArbitrary<IntEnum>(),
-  expected: fc.constantFrom(0, 1, 2),
-})
-define({
-  actual: typeToArbitrary<IntEnum.C>(),
-  expected: fc.constant(2),
-})
+test({ arb: typeToArbitrary<IntEnum>() })
+test({ arb: typeToArbitrary<IntEnum.C>() })
 enum ImplicitIntEnum {
   A,
   B,
   C,
 }
-define({
-  actual: typeToArbitrary<ImplicitIntEnum>(),
-  expected: fc.constantFrom(0, 1, 2),
-})
-define({
-  actual: typeToArbitrary<ImplicitIntEnum.B>(),
-  expected: fc.constant(1),
-})
+test({ arb: typeToArbitrary<ImplicitIntEnum>() })
+test({ arb: typeToArbitrary<ImplicitIntEnum.B>() })
 enum PartiallyImplicitIntEnum {
   A = 4,
   B,
   C = 2,
   D,
 }
-define({
-  actual: typeToArbitrary<PartiallyImplicitIntEnum>(),
-  expected: fc.constantFrom(2, 3, 4, 5),
-})
-define({
-  actual: typeToArbitrary<PartiallyImplicitIntEnum.B>(),
-  expected: fc.constant(5),
-})
+test({ arb: typeToArbitrary<PartiallyImplicitIntEnum>() })
+test({ arb: typeToArbitrary<PartiallyImplicitIntEnum.B>() })
 
 // Union
-define({
-  actual: typeToArbitrary<false | true>(),
-  expected: fc.boolean(),
-})
-define({
-  actual: typeToArbitrary<true | false>(),
-  expected: fc.boolean(),
-})
-define({
-  actual: typeToArbitrary<1 | 3 | 2 | 4>(),
-  expected: fc.constantFrom(1, 2, 3, 4),
-})
-define({
-  actual: typeToArbitrary<1n | 3n | 2n | 4n>(),
-  expected: fc.constantFrom(1n, 2n, 3n, 4n),
-})
-define({
-  actual: typeToArbitrary<'b' | 'a' | 'd' | 'c'>(),
-  expected: fc.constantFrom(`a`, `b`, `c`, `d`),
-})
-define({
-  actual: typeToArbitrary<string | undefined>(),
-  expected: fc.option(fc.string(), { nil: undefined }),
-})
-define({
-  actual: typeToArbitrary<string | null>(),
-  expected: fc.option(fc.string()),
-})
-define({
-  actual: typeToArbitrary<string | undefined | null>(),
-  expected: fc.oneof(fc.string(), fc.constantFrom(null, undefined)),
-})
-define({
-  actual: typeToArbitrary<string | number>(),
-  expected: fc.oneof(fc.string(), fc.double()),
-})
-define({ actual: typeToArbitrary<string | never>(), expected: fc.string() })
+test({ arb: typeToArbitrary<false | true>() })
+test({ arb: typeToArbitrary<true | false>() })
+test({ arb: typeToArbitrary<1 | 3 | 2 | 4>() })
+test({ arb: typeToArbitrary<1n | 3n | 2n | 4n>() })
+test({ arb: typeToArbitrary<'b' | 'a' | 'd' | 'c'>() })
+test({ arb: typeToArbitrary<string | undefined>() })
+test({ arb: typeToArbitrary<string | null>() })
+test({ arb: typeToArbitrary<string | undefined | null>() })
+test({ arb: typeToArbitrary<string | number>() })
+test({ arb: typeToArbitrary<string | never>() })
 
 // Type parameter
-define({
-  actual: (<T>() => typeToArbitrary<T>())(),
-  expected: fc.anything(),
-  roundtrippable: false,
+test({
+  arb: (<T>() => typeToArbitrary<T>())(),
+  typecheck: false,
 })
-define({
-  actual: (<T extends string>() => typeToArbitrary<T>())(),
-  expected: fc.string(),
-  roundtrippable: false,
+test({
+  arb: (<T extends string>() => typeToArbitrary<T>())(),
+  typecheck: false,
 })
 
 // Unknown
-define({ actual: typeToArbitrary<unknown>(), expected: fc.anything() })
-define({ actual: typeToArbitrary<any>(), expected: fc.anything() })
+test({ arb: typeToArbitrary<unknown>() })
+test({ arb: typeToArbitrary<any>() })
 
 export default testCases

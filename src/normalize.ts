@@ -4,6 +4,7 @@ import {
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
+  doubleArbitrary,
   funcArbitrary,
   neverArbitrary,
   oneofArbitrary,
@@ -75,9 +76,15 @@ const normalizeTemplateArbitrary = (
         case `template`:
           flattenedSegments.push(...segment.segments)
           break
+        case `double`:
+          segment = doubleArbitrary({
+            ...segment.constraints,
+            noDefaultInfinity: true,
+            noNaN: true,
+          })
+          break
         case `option`:
         case `boolean`:
-        case `double`:
         case `bigInt`:
         case `string`:
         case `symbol`:

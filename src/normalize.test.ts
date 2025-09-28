@@ -16,8 +16,8 @@ import {
   optionArbitrary,
   recordArbitrary,
   stringArbitrary,
-  stringMatchingArbitrary,
   symbolArbitrary,
+  templateArbitrary,
   tupleArbitrary,
 } from './arbitrary.ts'
 import normalizeArbitrary from './normalize.ts'
@@ -41,7 +41,7 @@ const arbitraryArb = fc.letrec<
     tie(`double`),
     tie(`bigInt`),
     tie(`string`),
-    tie(`stringMatching`),
+    tie(`template`),
     tie(`symbol`),
     tie(`array`),
     tie(`tuple`),
@@ -64,7 +64,11 @@ const arbitraryArb = fc.letrec<
   double: fc.constant(doubleArbitrary()),
   bigInt: fc.constant(bigIntArbitrary()),
   string: fc.constant(stringArbitrary()),
-  stringMatching: fc.string().map(stringMatchingArbitrary),
+  template: fc
+    .array(fc.oneof({ depthIdentifier }, fc.string(), tie(`arbitrary`)), {
+      depthIdentifier,
+    })
+    .map(templateArbitrary),
   symbol: fc.constant(symbolArbitrary()),
   array: tie(`arbitrary`).map(arrayArbitrary),
   tuple: fc

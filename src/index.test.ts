@@ -71,6 +71,7 @@ const toJs = (value: unknown) => {
     case `string`:
     case `undefined`:
     case `object`:
+    case `function`:
       return jsesc(value, { wrap: true })
     case `symbol`:
       return `Symbol(${
@@ -78,7 +79,5 @@ const toJs = (value: unknown) => {
           ? ``
           : jsesc(value.description, { wrap: true })
       })`
-    case `function`:
-      return fc.stringify(value)
   }
 }

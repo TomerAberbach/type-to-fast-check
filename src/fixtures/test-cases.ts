@@ -1,3 +1,5 @@
+/* eslint-disable typescript/method-signature-style */
+/* eslint-disable typescript/consistent-type-definitions */
 /* eslint-disable typescript/no-unsafe-function-type */
 /* eslint-disable typescript/array-type */
 /* eslint-disable typescript/no-unnecessary-template-expression */
@@ -92,6 +94,33 @@ test({ arb: typeToArb<object>() })
 // Function
 test({ arb: typeToArb<() => string>() })
 test({ arb: typeToArb<Function>(), typecheck: false })
+
+// Interface
+interface Interface1 {
+  a: string
+  b: number
+}
+test({ arb: typeToArb<Interface1>() })
+interface Interface2 {
+  a: string
+  b: number | undefined
+}
+test({ arb: typeToArb<Interface2>() })
+interface Interface3 {
+  a: string
+  b?: number
+}
+test({ arb: typeToArb<Interface3>() })
+interface Interface4 extends Interface1 {
+  c: string
+}
+test({ arb: typeToArb<Interface4>() })
+interface Interface5 {
+  a(): number
+  b(): string
+  c: () => boolean
+}
+test({ arb: typeToArb<Interface5>() })
 
 // Enum
 enum StringEnum {

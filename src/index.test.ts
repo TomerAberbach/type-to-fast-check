@@ -10,7 +10,7 @@ const fixturesPath = `${import.meta.dirname}/fixtures`
 
 const tsCode = await fs.readFile(`${fixturesPath}/test-cases.ts`, `utf8`)
 const types = Array.from(
-  tsCode.matchAll(/typeToArbitrary<(?<type>.+)>\(\)/gu),
+  tsCode.matchAll(/typeToArb<(?<type>.+)>\(\)/gu),
   ({ groups }) => groups?.type ?? `?`,
 )
 const { transformedTsCode, jsCode, errorDiagnostics } = transpileTypeScript(
@@ -21,7 +21,7 @@ const testCases = (
   (await importFromString(jsCode)) as typeof TestCases
 ).default.map((testCase, index) => ({ type: types[index]!, ...testCase }))
 
-test(`typeToArbitrary is transformed`, async () => {
+test(`typeToArb is transformed`, async () => {
   expect(errorDiagnostics).toStrictEqual([])
   await expect(transformedTsCode).toMatchFileSnapshot(
     `${fixturesPath}/test-cases.transformed.ts`,
@@ -41,7 +41,7 @@ for (const { type, arb, typecheck = true } of testCases) {
       fc.array(arb, { minLength: BATCH_SIZE, maxLength: BATCH_SIZE }),
     ],
     { numRuns: 100 / BATCH_SIZE },
-  )(`typeToArbitrary<${type}>() generates correct types`, (context, values) => {
+  )(`typeToArb<${type}>() generates correct types`, (context, values) => {
     const statement = `export const check: Array<${type}> = [${values
       .map(toJs)
       .join(`, `)}]`

@@ -173,7 +173,9 @@ const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
     ts.factory.createObjectLiteralExpression(
       properties.map(([name, { arbitrary }]) =>
         ts.factory.createPropertyAssignment(
-          ts.factory.createComputedPropertyName(literalExpression(name)),
+          typeof name === `string`
+            ? name
+            : ts.factory.createComputedPropertyName(literalExpression(name)),
           reifyArbitrary(arbitrary),
         ),
       ),

@@ -70,9 +70,9 @@ test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
 // Tuple
 test({ arb: /* [string, number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
 // Object
-test({ arb: /* { a: string; b: number; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.double() }) });
-test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }) });
-test({ arb: /* { a: string; b?: number | undefined; } */ ttfc.record({ ["a"]: ttfc.string(), ["b"]: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+test({ arb: /* { a: string; b: number; } */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
+test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
+test({ arb: /* { a: string; b?: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
 test({ arb: /* object */ ttfc.object() });
 // Function
 test({ arb: /* () => string */ ttfc.func(ttfc.string()) });

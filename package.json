@@ -6,8 +6,16 @@
     "email": "tomer@aberba.ch",
     "url": "https://tomeraberba.ch"
   },
-  "description": "A first-rate module.",
-  "keywords": [],
+  "description": "Automatically convert TypeScript types to fast-check arbitraries!",
+  "keywords": [
+    "arbitraries",
+    "codegen",
+    "fast-check",
+    "testing",
+    "transformer",
+    "types",
+    "typescript"
+  ],
   "homepage": "https://github.com/TomerAberbach/type-to-fast-check",
   "repository": "TomerAberbach/type-to-fast-check",
   "bugs": {
@@ -30,6 +38,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./transformer": {
+      "types": "./dist/transformer.d.ts",
+      "default": "./dist/transformer.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -44,10 +56,12 @@
   },
   "prettier": "@tomer/prettier-config",
   "dependencies": {
-    "fast-check": "^4.3.0",
     "keyalesce": "^3.0.0",
-    "svkc": "^2.0.0",
-    "typescript": "^5.9.2"
+    "svkc": "^2.0.0"
+  },
+  "peerDependencies": {
+    "fast-check": "^4",
+    "typescript": "^5"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.2.2",
@@ -56,12 +70,14 @@
     "@types/jsesc": "^3.0.3",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.35.0",
+    "fast-check": "^4.3.0",
     "import-from-string": "^0.0.5",
     "jest-extended": "^6.0.0",
     "jsesc": "^3.1.0",
     "prettier": "^3.6.2",
     "publint": "^0.3.12",
     "tsdown": "^0.15.2",
+    "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
 }

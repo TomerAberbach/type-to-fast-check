@@ -1,3 +1,4 @@
+/* eslint-disable typescript/prefer-function-type */
 /* eslint-disable typescript/method-signature-style */
 /* eslint-disable typescript/consistent-type-definitions */
 /* eslint-disable typescript/no-unsafe-function-type */
@@ -91,36 +92,48 @@ test({ arb: typeToArb<{ a: string; b: number | undefined }>() })
 test({ arb: typeToArb<{ a: string; b?: number }>() })
 test({ arb: typeToArb<object>() })
 
-// Function
-test({ arb: typeToArb<() => string>() })
-test({ arb: typeToArb<Function>(), typecheck: false })
-
 // Interface
-interface Interface1 {
+interface Interface {
   a: string
   b: number
 }
-test({ arb: typeToArb<Interface1>() })
-interface Interface2 {
+test({ arb: typeToArb<Interface>() })
+interface InterfaceWithUndefined {
   a: string
   b: number | undefined
 }
-test({ arb: typeToArb<Interface2>() })
-interface Interface3 {
+test({ arb: typeToArb<InterfaceWithUndefined>() })
+interface InterfaceWithOptional {
   a: string
   b?: number
 }
-test({ arb: typeToArb<Interface3>() })
-interface Interface4 extends Interface1 {
+test({ arb: typeToArb<InterfaceWithOptional>() })
+interface InterfaceWithExtends extends Interface {
   c: string
 }
-test({ arb: typeToArb<Interface4>() })
-interface Interface5 {
+test({ arb: typeToArb<InterfaceWithExtends>() })
+interface InterfaceWithFunctions {
   a(): number
   b(): string
   c: () => boolean
 }
-test({ arb: typeToArb<Interface5>() })
+test({ arb: typeToArb<InterfaceWithFunctions>() })
+
+// Function
+test({ arb: typeToArb<() => string>() })
+test({ arb: typeToArb<Function>(), typecheck: false })
+test({ arb: typeToArb<{ (): string }>() })
+test({ arb: typeToArb<{ a: string; (): string }>(), typecheck: false })
+test({
+  arb: typeToArb<{ a: string; (): string; b: number }>(),
+  typecheck: false,
+})
+interface CallableInterface {
+  a: string
+  b: () => number
+  (): string
+}
+test({ arb: typeToArb<CallableInterface>(), typecheck: false })
 
 // Enum
 enum StringEnum {

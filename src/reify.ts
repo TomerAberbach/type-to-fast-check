@@ -2,6 +2,7 @@ import ts from 'typescript'
 import type {
   Arbitrary,
   ArrayArbitrary,
+  AssignArbitrary,
   ConstantArbitrary,
   ConstantFromArbitrary,
   DoubleArbitrary,
@@ -48,6 +49,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
       return constantFromArbitraryExpression(arbitrary)
     case `oneof`:
       return oneofArbitraryExpression(arbitrary)
+    case `assign`:
+      return assignArbitraryExpression(arbitrary)
     case `anything`:
       return anythingArbitraryExpression()
   }
@@ -205,6 +208,23 @@ const constantFromArbitraryExpression = (arbitrary: ConstantFromArbitrary) =>
 
 const oneofArbitraryExpression = (arbitrary: OneofArbitrary) =>
   fcCallExpression(`oneof`, arbitrary.variants.map(reifyArbitrary))
+
+const assignArbitraryExpression = (arbitrary: AssignArbitrary) =>
+  mapArbitraryExpression(
+    fcCallExpression(`tuple`, [
+      reifyArbitrary(arbitrary.target),
+      reifyArbitrary(arbitrary.source),
+    ]),
+    valueIdentifier =>
+      ts.factory.createCallExpression(
+        ts.factory.createPropertyAccessExpression(
+          globalThisExpression(`Object`),
+          `assign`,
+        ),
+        undefined,
+        [ts.factory.createSpreadElement(valueIdentifier)],
+      ),
+  )
 
 const anythingArbitraryExpression = () => fcCallExpression(`anything`)
 

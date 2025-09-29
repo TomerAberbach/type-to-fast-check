@@ -7,7 +7,7 @@
 
 import type * as fc from 'fast-check'
 
-declare const typeToArbitrary: <T>() => fc.Arbitrary<T>
+declare const typeToArb: <T>() => fc.Arbitrary<T>
 
 type TestCase<T = unknown> = {
   arb: fc.Arbitrary<T>
@@ -24,74 +24,74 @@ const test = (testCase: {
 }
 
 // Never
-test({ arb: typeToArbitrary<never>(), typecheck: false })
+test({ arb: typeToArb<never>(), typecheck: false })
 
 // Undefined
-test({ arb: typeToArbitrary<void>() })
-test({ arb: typeToArbitrary<undefined>() })
+test({ arb: typeToArb<void>() })
+test({ arb: typeToArb<undefined>() })
 
 // Boolean
-test({ arb: typeToArbitrary<boolean>() })
-test({ arb: typeToArbitrary<false>() })
-test({ arb: typeToArbitrary<true>() })
+test({ arb: typeToArb<boolean>() })
+test({ arb: typeToArb<false>() })
+test({ arb: typeToArb<true>() })
 
 // Number
-test({ arb: typeToArbitrary<number>() })
-test({ arb: typeToArbitrary<0>() })
-test({ arb: typeToArbitrary<1>() })
-test({ arb: typeToArbitrary<42>() })
-test({ arb: typeToArbitrary<1.5>() })
-test({ arb: typeToArbitrary<-3>() })
-test({ arb: typeToArbitrary<-3.14>() })
+test({ arb: typeToArb<number>() })
+test({ arb: typeToArb<0>() })
+test({ arb: typeToArb<1>() })
+test({ arb: typeToArb<42>() })
+test({ arb: typeToArb<1.5>() })
+test({ arb: typeToArb<-3>() })
+test({ arb: typeToArb<-3.14>() })
 
 // Bigint
-test({ arb: typeToArbitrary<bigint>() })
-test({ arb: typeToArbitrary<0n>() })
-test({ arb: typeToArbitrary<1n>() })
-test({ arb: typeToArbitrary<42n>() })
-test({ arb: typeToArbitrary<-3n>() })
+test({ arb: typeToArb<bigint>() })
+test({ arb: typeToArb<0n>() })
+test({ arb: typeToArb<1n>() })
+test({ arb: typeToArb<42n>() })
+test({ arb: typeToArb<-3n>() })
 
 // String
-test({ arb: typeToArbitrary<string>() })
-test({ arb: typeToArbitrary<'Hello World!'>() })
-test({ arb: typeToArbitrary<`Hello World!`>() })
-test({ arb: typeToArbitrary<`Hello ${undefined}!`>() })
-test({ arb: typeToArbitrary<`Hello ${null}!`>() })
-test({ arb: typeToArbitrary<`Hello ${boolean}!`>() })
-test({ arb: typeToArbitrary<`Hello ${false}!`>() })
-test({ arb: typeToArbitrary<`Hello ${true}!`>() })
-test({ arb: typeToArbitrary<`Hello ${true}!`>() })
-test({ arb: typeToArbitrary<`Hello ${number}!`>() })
-test({ arb: typeToArbitrary<`Hello ${42}!`>() })
-test({ arb: typeToArbitrary<`Hello ${bigint}!`>() })
-test({ arb: typeToArbitrary<`Hello ${42n}!`>() })
-test({ arb: typeToArbitrary<`${string}`>() })
-test({ arb: typeToArbitrary<`Hello ${string}!`>() })
-test({ arb: typeToArbitrary<`${string} - ${number} - ${string}`>() })
+test({ arb: typeToArb<string>() })
+test({ arb: typeToArb<'Hello World!'>() })
+test({ arb: typeToArb<`Hello World!`>() })
+test({ arb: typeToArb<`Hello ${undefined}!`>() })
+test({ arb: typeToArb<`Hello ${null}!`>() })
+test({ arb: typeToArb<`Hello ${boolean}!`>() })
+test({ arb: typeToArb<`Hello ${false}!`>() })
+test({ arb: typeToArb<`Hello ${true}!`>() })
+test({ arb: typeToArb<`Hello ${true}!`>() })
+test({ arb: typeToArb<`Hello ${number}!`>() })
+test({ arb: typeToArb<`Hello ${42}!`>() })
+test({ arb: typeToArb<`Hello ${bigint}!`>() })
+test({ arb: typeToArb<`Hello ${42n}!`>() })
+test({ arb: typeToArb<`${string}`>() })
+test({ arb: typeToArb<`Hello ${string}!`>() })
+test({ arb: typeToArb<`${string} - ${number} - ${string}`>() })
 
 // Symbol
-test({ arb: typeToArbitrary<symbol>() })
+test({ arb: typeToArb<symbol>() })
 const _symbol: unique symbol = Symbol('unique')
-test({ arb: typeToArbitrary<typeof _symbol>(), typecheck: false })
+test({ arb: typeToArb<typeof _symbol>(), typecheck: false })
 
 // Array
-test({ arb: typeToArbitrary<string[]>() })
-test({ arb: typeToArbitrary<Array<string>>() })
-test({ arb: typeToArbitrary<readonly string[]>() })
-test({ arb: typeToArbitrary<ReadonlyArray<string>>() })
+test({ arb: typeToArb<string[]>() })
+test({ arb: typeToArb<Array<string>>() })
+test({ arb: typeToArb<readonly string[]>() })
+test({ arb: typeToArb<ReadonlyArray<string>>() })
 
 // Tuple
-test({ arb: typeToArbitrary<[string, number]>() })
+test({ arb: typeToArb<[string, number]>() })
 
 // Object
-test({ arb: typeToArbitrary<{ a: string; b: number }>() })
-test({ arb: typeToArbitrary<{ a: string; b: number | undefined }>() })
-test({ arb: typeToArbitrary<{ a: string; b?: number }>() })
-test({ arb: typeToArbitrary<object>() })
+test({ arb: typeToArb<{ a: string; b: number }>() })
+test({ arb: typeToArb<{ a: string; b: number | undefined }>() })
+test({ arb: typeToArb<{ a: string; b?: number }>() })
+test({ arb: typeToArb<object>() })
 
 // Function
-test({ arb: typeToArbitrary<() => string>() })
-test({ arb: typeToArbitrary<Function>(), typecheck: false })
+test({ arb: typeToArb<() => string>() })
+test({ arb: typeToArb<Function>(), typecheck: false })
 
 // Enum
 enum StringEnum {
@@ -100,12 +100,12 @@ enum StringEnum {
   C = 'c',
 }
 test({
-  arb: typeToArbitrary<StringEnum>(),
+  arb: typeToArb<StringEnum>(),
   // TODO(#17): Remove this once enums are referenced at runtime.
   typecheck: false,
 })
 test({
-  arb: typeToArbitrary<StringEnum.C>(),
+  arb: typeToArb<StringEnum.C>(),
   // TODO(#17): Remove this once enums are referenced at runtime.
   typecheck: false,
 })
@@ -114,48 +114,48 @@ enum IntEnum {
   A = 0,
   C = 2,
 }
-test({ arb: typeToArbitrary<IntEnum>() })
-test({ arb: typeToArbitrary<IntEnum.C>() })
+test({ arb: typeToArb<IntEnum>() })
+test({ arb: typeToArb<IntEnum.C>() })
 enum ImplicitIntEnum {
   A,
   B,
   C,
 }
-test({ arb: typeToArbitrary<ImplicitIntEnum>() })
-test({ arb: typeToArbitrary<ImplicitIntEnum.B>() })
+test({ arb: typeToArb<ImplicitIntEnum>() })
+test({ arb: typeToArb<ImplicitIntEnum.B>() })
 enum PartiallyImplicitIntEnum {
   A = 4,
   B,
   C = 2,
   D,
 }
-test({ arb: typeToArbitrary<PartiallyImplicitIntEnum>() })
-test({ arb: typeToArbitrary<PartiallyImplicitIntEnum.B>() })
+test({ arb: typeToArb<PartiallyImplicitIntEnum>() })
+test({ arb: typeToArb<PartiallyImplicitIntEnum.B>() })
 
 // Union
-test({ arb: typeToArbitrary<false | true>() })
-test({ arb: typeToArbitrary<true | false>() })
-test({ arb: typeToArbitrary<1 | 3 | 2 | 4>() })
-test({ arb: typeToArbitrary<1n | 3n | 2n | 4n>() })
-test({ arb: typeToArbitrary<'b' | 'a' | 'd' | 'c'>() })
-test({ arb: typeToArbitrary<string | undefined>() })
-test({ arb: typeToArbitrary<string | null>() })
-test({ arb: typeToArbitrary<string | undefined | null>() })
-test({ arb: typeToArbitrary<string | number>() })
-test({ arb: typeToArbitrary<string | never>() })
+test({ arb: typeToArb<false | true>() })
+test({ arb: typeToArb<true | false>() })
+test({ arb: typeToArb<1 | 3 | 2 | 4>() })
+test({ arb: typeToArb<1n | 3n | 2n | 4n>() })
+test({ arb: typeToArb<'b' | 'a' | 'd' | 'c'>() })
+test({ arb: typeToArb<string | undefined>() })
+test({ arb: typeToArb<string | null>() })
+test({ arb: typeToArb<string | undefined | null>() })
+test({ arb: typeToArb<string | number>() })
+test({ arb: typeToArb<string | never>() })
 
 // Type parameter
 test({
-  arb: (<T>() => typeToArbitrary<T>())(),
+  arb: (<T>() => typeToArb<T>())(),
   typecheck: false,
 })
 test({
-  arb: (<T extends string>() => typeToArbitrary<T>())(),
+  arb: (<T extends string>() => typeToArb<T>())(),
   typecheck: false,
 })
 
 // Unknown
-test({ arb: typeToArbitrary<unknown>() })
-test({ arb: typeToArbitrary<any>() })
+test({ arb: typeToArb<unknown>() })
+test({ arb: typeToArb<any>() })
 
 export default testCases

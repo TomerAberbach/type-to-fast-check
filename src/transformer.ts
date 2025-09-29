@@ -11,7 +11,7 @@ const createTransformer = (
   return (context: ts.TransformationContext): ts.Transformer<ts.SourceFile> =>
     (sourceFile: ts.SourceFile): ts.SourceFile => {
       let newSourceFile = ts.visitNode(sourceFile, node =>
-        visitTypeToArbitraryCallExpressions(node, typeChecker, context),
+        visitTypeToArbCallExpressions(node, typeChecker, context),
       ) as ts.SourceFile
       if (newSourceFile !== sourceFile) {
         newSourceFile = addFastCheckImport(newSourceFile)
@@ -20,27 +20,27 @@ const createTransformer = (
     }
 }
 
-const visitTypeToArbitraryCallExpressions = (
+const visitTypeToArbCallExpressions = (
   node: ts.Node,
   typeChecker: ts.TypeChecker,
   context: ts.TransformationContext,
 ): ts.Node =>
-  visitTypeToArbitraryCallExpression(node, typeChecker) ??
+  visitTypeToArbCallExpression(node, typeChecker) ??
   ts.visitEachChild(
     node,
-    node => visitTypeToArbitraryCallExpressions(node, typeChecker, context),
+    node => visitTypeToArbCallExpressions(node, typeChecker, context),
     context,
   )
 
-const visitTypeToArbitraryCallExpression = (
+const visitTypeToArbCallExpression = (
   node: ts.Node,
   typeChecker: ts.TypeChecker,
 ): ts.Expression | undefined => {
-  const isTypeToArbitraryCallExpression =
+  const isTypeToArbCallExpression =
     ts.isCallExpression(node) &&
     ts.isIdentifier(node.expression) &&
-    node.expression.text === `typeToArbitrary`
-  if (!isTypeToArbitraryCallExpression) {
+    node.expression.text === `typeToArb`
+  if (!isTypeToArbCallExpression) {
     return
   }
 

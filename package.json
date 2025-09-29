@@ -1,5 +1,5 @@
 {
-  "name": "typescript-fast-check",
+  "name": "type-to-fast-check",
   "version": "0.0.0",
   "author": {
     "name": "Tomer Aberbach",
@@ -8,10 +8,10 @@
   },
   "description": "A first-rate module.",
   "keywords": [],
-  "homepage": "https://github.com/TomerAberbach/typescript-fast-check",
-  "repository": "TomerAberbach/typescript-fast-check",
+  "homepage": "https://github.com/TomerAberbach/type-to-fast-check",
+  "repository": "TomerAberbach/type-to-fast-check",
   "bugs": {
-    "url": "https://github.com/TomerAberbach/typescript-fast-check/issues"
+    "url": "https://github.com/TomerAberbach/type-to-fast-check/issues"
   },
   "funding": {
     "url": "https://github.com/sponsors/TomerAberbach"

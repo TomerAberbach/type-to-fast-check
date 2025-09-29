@@ -6,7 +6,7 @@ import * as ttfc from "fast-check";
 /* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 import type * as fc from 'fast-check';
-declare const typeToArbitrary: <T>() => fc.Arbitrary<T>;
+declare const typeToArb: <T>() => fc.Arbitrary<T>;
 type TestCase<T = unknown> = {
     arb: fc.Arbitrary<T>;
     typecheck?: boolean;

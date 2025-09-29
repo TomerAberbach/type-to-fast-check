@@ -1,9 +1,9 @@
 import type { Arbitrary } from 'fast-check'
 
-const typeToArbitrary = <T>(): Arbitrary<T> => {
+const typeToArb = <T>(): Arbitrary<T> => {
   throw new Error(
-    `typeToArbitrary<T>() should be transformed by the TypeScript transformer`,
+    `typeToArb<T>() should be transformed by the TypeScript transformer`,
   )
 }
 
-export default typeToArbitrary
+export default typeToArb

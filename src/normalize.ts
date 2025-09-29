@@ -1,6 +1,7 @@
 import { SameValueSet } from 'svkc'
 import {
   arrayArbitrary,
+  assignArbitrary,
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
@@ -16,6 +17,7 @@ import {
 import type {
   Arbitrary,
   ArrayArbitrary,
+  AssignArbitrary,
   ConstantFromArbitrary,
   FuncArbitrary,
   OneofArbitrary,
@@ -54,6 +56,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return normalizeConstantFromArbitrary(arbitrary)
     case `oneof`:
       return normalizeOneofArbitrary(arbitrary)
+    case `assign`:
+      return normalizeAssignArbitrary(arbitrary)
   }
 }
 
@@ -95,6 +99,7 @@ const normalizeTemplateArbitrary = (
         case `func`:
         case `constantFrom`:
         case `oneof`:
+        case `assign`:
         case `anything`:
           break
       }
@@ -289,6 +294,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `record`:
     case `object`:
     case `func`:
+    case `assign`:
     case `anything`:
       return [arbitrary]
     case `never`:
@@ -304,5 +310,11 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
       return arbitrary.variants.flatMap(spreadUnionArbitraries)
   }
 }
+
+const normalizeAssignArbitrary = (arbitrary: AssignArbitrary): Arbitrary =>
+  assignArbitrary({
+    target: normalizeArbitrary(arbitrary.target),
+    source: normalizeArbitrary(arbitrary.source),
+  })
 
 export default normalizeArbitrary

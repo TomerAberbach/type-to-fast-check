@@ -1,4 +1,5 @@
 import * as ttfc from "fast-check";
+/* eslint-disable typescript/prefer-function-type */
 /* eslint-disable typescript/method-signature-style */
 /* eslint-disable typescript/consistent-type-definitions */
 /* eslint-disable typescript/no-unsafe-function-type */
@@ -76,35 +77,47 @@ test({ arb: /* { a: string; b: number; } */ ttfc.record({ a: ttfc.string(), b: t
 test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
 test({ arb: /* { a: string; b?: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
 test({ arb: /* object */ ttfc.object() });
-// Function
-test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
-test({ arb: /* Function */ ttfc.func(ttfc.anything()), typecheck: false });
 // Interface
-interface Interface1 {
+interface Interface {
     a: string;
     b: number;
 }
-test({ arb: /* Interface1 */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
-interface Interface2 {
+test({ arb: /* Interface */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
+interface InterfaceWithUndefined {
     a: string;
     b: number | undefined;
 }
-test({ arb: /* Interface2 */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
-interface Interface3 {
+test({ arb: /* InterfaceWithUndefined */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
+interface InterfaceWithOptional {
     a: string;
     b?: number;
 }
-test({ arb: /* Interface3 */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
-interface Interface4 extends Interface1 {
+test({ arb: /* InterfaceWithOptional */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+interface InterfaceWithExtends extends Interface {
     c: string;
 }
-test({ arb: /* Interface4 */ ttfc.record({ c: ttfc.string(), a: ttfc.string(), b: ttfc.double() }) });
-interface Interface5 {
+test({ arb: /* InterfaceWithExtends */ ttfc.record({ c: ttfc.string(), a: ttfc.string(), b: ttfc.double() }) });
+interface InterfaceWithFunctions {
     a(): number;
     b(): string;
     c: () => boolean;
 }
-test({ arb: /* Interface5 */ ttfc.record({ a: ttfc.func(ttfc.double()), b: ttfc.func(ttfc.string()), c: ttfc.func(ttfc.boolean()) }) });
+test({ arb: /* InterfaceWithFunctions */ ttfc.record({ a: ttfc.func(ttfc.double()), b: ttfc.func(ttfc.string()), c: ttfc.func(ttfc.boolean()) }) });
+// Function
+test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
+test({ arb: /* Function */ ttfc.func(ttfc.anything()), typecheck: false });
+test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
+test({ arb: /* { (): string; a: string; } */ ttfc.tuple(ttfc.func(ttfc.string()), ttfc.record({ a: ttfc.string() })).map(value => globalThis.Object.assign(...value)), typecheck: false });
+test({
+    arb: /* { (): string; a: string; b: number; } */ ttfc.tuple(ttfc.func(ttfc.string()), ttfc.record({ a: ttfc.string(), b: ttfc.double() })).map(value => globalThis.Object.assign(...value)),
+    typecheck: false,
+});
+interface CallableInterface {
+    a: string;
+    b: () => number;
+    (): string;
+}
+test({ arb: /* CallableInterface */ ttfc.tuple(ttfc.func(ttfc.string()), ttfc.record({ a: ttfc.string(), b: ttfc.func(ttfc.double()) })).map(value => globalThis.Object.assign(...value)), typecheck: false });
 // Enum
 enum StringEnum {
     B = 'b',

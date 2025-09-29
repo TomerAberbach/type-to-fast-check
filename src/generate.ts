@@ -2,6 +2,7 @@ import ts from 'typescript'
 import {
   anythingArbitrary,
   arrayArbitrary,
+  assignArbitrary,
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
@@ -97,26 +98,36 @@ const generateObjectArbitrary = (
     return referenceArbitrary
   }
 
-  // TODO(#20): Support call signatures on objects with properties.
   const callSignatures = typeChecker.getSignaturesOfType(
     type,
     ts.SignatureKind.Call,
   )
-  if (callSignatures.length > 0) {
-    return generateFunctionArbitrary(type, typeChecker)
-  }
+  const functionArbitrary =
+    callSignatures.length > 0
+      ? generateFunctionArbitrary(type, typeChecker)
+      : undefined
 
+  let objArbitrary: Arbitrary | undefined
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
     if (
       objectType.objectFlags & flag ||
       (objectType.objectFlags & ts.ObjectFlags.Reference &&
         (objectType as ts.TypeReference).target.objectFlags & flag)
     ) {
-      return generateArbitrary(objectType, typeChecker)
+      objArbitrary = generateArbitrary(objectType, typeChecker)
+      break
     }
   }
 
-  return objectArbitrary()
+  if (
+    functionArbitrary &&
+    objArbitrary &&
+    (objArbitrary.type !== `record` || objArbitrary.properties.size > 0)
+  ) {
+    return assignArbitrary({ target: functionArbitrary, source: objArbitrary })
+  }
+
+  return functionArbitrary ?? objArbitrary ?? objectArbitrary()
 }
 
 const generateReferenceArbitrary = (

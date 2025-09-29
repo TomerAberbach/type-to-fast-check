@@ -18,6 +18,7 @@ export type Arbitrary =
   | FuncArbitrary
   | ConstantFromArbitrary
   | OneofArbitrary
+  | AssignArbitrary
   | AnythingArbitrary
 
 export type NeverArbitrary = {
@@ -81,7 +82,7 @@ export type TemplateArbitrary = {
 }
 
 export const templateArbitrary = (
-  segments: (string | Arbitrary)[],
+  segments: TemplateArbitrary[`segments`],
 ): TemplateArbitrary => memoize({ type: `template`, segments })
 
 export type SymbolArbitrary = {
@@ -157,6 +158,16 @@ export const oneofArbitrary = (
   variants: OneofArbitrary[`variants`],
 ): OneofArbitrary => memoize({ type: `oneof`, variants })
 
+export type AssignArbitrary = {
+  type: `assign`
+  target: Arbitrary
+  source: Arbitrary
+}
+
+export const assignArbitrary = (
+  props: Pick<AssignArbitrary, `target` | `source`>,
+): AssignArbitrary => memoize({ type: `assign`, ...props })
+
 export type AnythingArbitrary = {
   type: `anything`
 }
@@ -209,6 +220,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, ...arbitrary.constants])
     case `oneof`:
       return keyalesce([arbitrary.type, ...arbitrary.variants])
+    case `assign`:
+      return keyalesce([arbitrary.type, arbitrary.target, arbitrary.source])
   }
 }
 

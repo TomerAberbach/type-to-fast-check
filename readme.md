@@ -21,7 +21,7 @@
 </div>
 
 <div align="center">
-  A first-rate module.
+  Automatically convert TypeScript types to <a href="https://github.com/dubzzz/fast-check">fast-check</a> arbitraries!
 </div>
 
 ## Features

@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "lib": ["esnext", "dom"],
+    "plugins": [{ "transform": "type-to-fast-check/transformer" }]
+  },
+  "include": ["./index.ts"]
+}

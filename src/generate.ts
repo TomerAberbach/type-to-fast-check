@@ -151,7 +151,7 @@ const generateFunctionArbitrary = (
   )
 }
 
-const generateAnonymousObjectArbitrary = (
+const generateObjectLiteralArbitrary = (
   type: ts.ObjectType,
   typeChecker: ts.TypeChecker,
 ): Arbitrary =>
@@ -246,7 +246,8 @@ const objectTypeGenerators = new Map<
   ts.ObjectFlags,
   (type: ts.ObjectType, typeChecker: ts.TypeChecker) => Arbitrary
 >([
-  [ts.ObjectFlags.Anonymous, generateAnonymousObjectArbitrary],
+  [ts.ObjectFlags.Anonymous, generateObjectLiteralArbitrary],
+  [ts.ObjectFlags.Interface, generateObjectLiteralArbitrary],
   [ts.ObjectFlags.Tuple, generateTupleArbitrary],
 ])
 

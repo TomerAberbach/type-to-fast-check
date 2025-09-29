@@ -1,4 +1,6 @@
 import * as ttfc from "fast-check";
+/* eslint-disable typescript/method-signature-style */
+/* eslint-disable typescript/consistent-type-definitions */
 /* eslint-disable typescript/no-unsafe-function-type */
 /* eslint-disable typescript/array-type */
 /* eslint-disable typescript/no-unnecessary-template-expression */
@@ -77,6 +79,32 @@ test({ arb: /* object */ ttfc.object() });
 // Function
 test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
 test({ arb: /* Function */ ttfc.func(ttfc.anything()), typecheck: false });
+// Interface
+interface Interface1 {
+    a: string;
+    b: number;
+}
+test({ arb: /* Interface1 */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
+interface Interface2 {
+    a: string;
+    b: number | undefined;
+}
+test({ arb: /* Interface2 */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
+interface Interface3 {
+    a: string;
+    b?: number;
+}
+test({ arb: /* Interface3 */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+interface Interface4 extends Interface1 {
+    c: string;
+}
+test({ arb: /* Interface4 */ ttfc.record({ c: ttfc.string(), a: ttfc.string(), b: ttfc.double() }) });
+interface Interface5 {
+    a(): number;
+    b(): string;
+    c: () => boolean;
+}
+test({ arb: /* Interface5 */ ttfc.record({ a: ttfc.func(ttfc.double()), b: ttfc.func(ttfc.string()), c: ttfc.func(ttfc.boolean()) }) });
 // Enum
 enum StringEnum {
     B = 'b',

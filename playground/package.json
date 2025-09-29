@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "ts-patch install -s",
+    "build": "tsc",
+    "play": "pnpm run build && node ./dist/index.js"
+  },
+  "dependencies": {
+    "fast-check": "^4.3.0",
+    "type-to-fast-check": "link:.."
+  },
+  "devDependencies": {
+    "ts-patch": "^3.3.0",
+    "tsx": "^4.20.6"
+  }
+}

@@ -20,6 +20,7 @@ export type Arbitrary =
   | ConstantFromArbitrary
   | OneofArbitrary
   | AssignArbitrary
+  | MapStringArbitrary
   | AnythingArbitrary
 
 export type NeverArbitrary = {
@@ -85,6 +86,16 @@ export type TemplateArbitrary = {
 export const templateArbitrary = (
   segments: TemplateArbitrary[`segments`],
 ): TemplateArbitrary => memoize({ type: `template`, segments })
+
+export type MapStringArbitrary = {
+  type: `mapString`
+  arbitrary: Arbitrary
+  operation: `uppercase` | `lowercase` | `capitalize` | `uncapitalize`
+}
+
+export const mapStringArbitrary = (
+  props: Pick<MapStringArbitrary, `arbitrary` | `operation`>,
+): MapStringArbitrary => memoize({ type: `mapString`, ...props })
 
 export type SymbolArbitrary = {
   type: `symbol`
@@ -213,6 +224,12 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, JSON.stringify(arbitrary.constraints)])
     case `template`:
       return keyalesce([arbitrary.type, ...arbitrary.segments])
+    case `mapString`:
+      return keyalesce([
+        arbitrary.type,
+        arbitrary.arbitrary,
+        arbitrary.operation,
+      ])
     case `array`:
       return keyalesce([arbitrary.type, arbitrary.items])
     case `tuple`:

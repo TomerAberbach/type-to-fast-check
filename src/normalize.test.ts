@@ -12,6 +12,7 @@ import {
   dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
+  mapStringArbitrary,
   neverArbitrary,
   objectArbitrary,
   oneofArbitrary,
@@ -44,14 +45,17 @@ const arbitraryArb = fc.letrec<
     tie(`bigInt`),
     tie(`string`),
     tie(`template`),
+    tie(`mapString`),
     tie(`symbol`),
     tie(`array`),
     tie(`tuple`),
     tie(`record`),
+    tie(`dictionary`),
     tie(`object`),
     tie(`func`),
     tie(`constantFrom`),
     tie(`oneof`),
+    tie(`assign`),
     tie(`anything`),
   ),
   never: fc.constant(neverArbitrary()),
@@ -66,6 +70,20 @@ const arbitraryArb = fc.letrec<
   double: fc.constant(doubleArbitrary()),
   bigInt: fc.constant(bigIntArbitrary()),
   string: fc.constant(stringArbitrary()),
+  mapString: fc
+    .record(
+      {
+        arbitrary: tie(`arbitrary`),
+        operation: fc.constantFrom(
+          `uppercase`,
+          `lowercase`,
+          `capitalize`,
+          `uncapitalize`,
+        ),
+      },
+      { noNullPrototype: true },
+    )
+    .map(mapStringArbitrary),
   template: fc
     .array(fc.oneof({ depthIdentifier }, fc.string(), tie(`arbitrary`)), {
       depthIdentifier,
@@ -91,7 +109,7 @@ const arbitraryArb = fc.letrec<
           { noNullPrototype: true },
         ),
       ),
-      { selector: ([name]) => name },
+      { selector: ([name]) => name, depthIdentifier },
     )
     .map(entries => recordArbitrary(new Map(entries))),
   dictionary: fc
@@ -103,12 +121,12 @@ const arbitraryArb = fc.letrec<
   object: fc.constant(objectArbitrary()),
   func: tie(`arbitrary`).map(funcArbitrary),
   constantFrom: fc
-    .array(fc.jsonValue(), { minLength: 1 })
+    .array(fc.jsonValue(), { minLength: 1, depthIdentifier })
     .map(constantFromArbitrary),
   oneof: fc
     .array(tie(`arbitrary`), { minLength: 1, depthIdentifier })
     .map(oneofArbitrary),
-  assign: fc.array(tie(`assign`), { depthIdentifier }).map(assignArbitrary),
+  assign: fc.array(tie(`arbitrary`), { depthIdentifier }).map(assignArbitrary),
   anything: fc.constant(anythingArbitrary()),
 })).arbitrary
 

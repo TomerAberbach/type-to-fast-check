@@ -8,6 +8,7 @@ import {
   dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
+  mapStringArbitrary,
   neverArbitrary,
   oneofArbitrary,
   optionArbitrary,
@@ -22,6 +23,7 @@ import type {
   ConstantFromArbitrary,
   DictionaryArbitrary,
   FuncArbitrary,
+  MapStringArbitrary,
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
@@ -46,6 +48,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return normalizeOptionArbitrary(arbitrary)
     case `template`:
       return normalizeTemplateArbitrary(arbitrary)
+    case `mapString`:
+      return normalizeMapStringArbitrary(arbitrary)
     case `array`:
       return normalizeArrayArbitrary(arbitrary)
     case `tuple`:
@@ -96,6 +100,7 @@ const normalizeTemplateArbitrary = (
         case `bigInt`:
         case `string`:
         case `symbol`:
+        case `mapString`:
         case `array`:
         case `tuple`:
         case `record`:
@@ -148,6 +153,14 @@ const normalizeTemplateArbitrary = (
       return templateArbitrary(normalizedSegments)
   }
 }
+
+const normalizeMapStringArbitrary = (
+  arbitrary: MapStringArbitrary,
+): Arbitrary =>
+  mapStringArbitrary({
+    arbitrary: normalizeArbitrary(arbitrary.arbitrary),
+    operation: arbitrary.operation,
+  })
 
 const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
   arrayArbitrary(normalizeArbitrary(arbitrary.items))
@@ -306,6 +319,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `bigInt`:
     case `string`:
     case `template`:
+    case `mapString`:
     case `symbol`:
     case `array`:
     case `tuple`:

@@ -62,6 +62,14 @@ test({ arb: /* "Hello 42!" */ ttfc.constant("Hello 42!") });
 test({ arb: /* string */ ttfc.string() });
 test({ arb: /* `Hello ${string}!` */ ttfc.string().map(value => `Hello ${value}!`) });
 test({ arb: /* `${string} - ${number} - ${string}` */ ttfc.tuple(ttfc.string(), ttfc.double({ noDefaultInfinity: true, noNaN: true }), ttfc.string()).map(value => `${value[0]} - ${value[1]} - ${value[2]}`) });
+test({ arb: /* "HI" */ ttfc.constant("HI") });
+test({ arb: /* Uppercase<string> */ ttfc.string().map(value => value.toUpperCase()) });
+test({ arb: /* "hi" */ ttfc.constant("hi") });
+test({ arb: /* Lowercase<string> */ ttfc.string().map(value => value.toLowerCase()) });
+test({ arb: /* "Hi" */ ttfc.constant("Hi") });
+test({ arb: /* Capitalize<string> */ ttfc.string().map(value => value.charAt(0).toUpperCase() + value.slice(1)) });
+test({ arb: /* "hi" */ ttfc.constant("hi") });
+test({ arb: /* Uncapitalize<string> */ ttfc.string().map(value => value.charAt(0).toLowerCase() + value.slice(1)) });
 // Symbol
 test({ arb: /* symbol */ ttfc.string().map(value => globalThis.Symbol(value)) });
 const _symbol: unique symbol = Symbol('unique');

@@ -74,6 +74,9 @@ test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
 // Tuple
 test({ arb: /* [string, number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
 test({ arb: /* [string, number, boolean] */ ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.boolean()) });
+test({ arb: /* [string, number, (boolean | undefined)?] */ ttfc.oneof(ttfc.tuple(ttfc.string(), ttfc.double()), ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.option(ttfc.boolean(), { nil: undefined }))) });
+test({ arb: /* [string, (number | undefined)?, (boolean | undefined)?] */ ttfc.oneof(ttfc.tuple(ttfc.string()), ttfc.tuple(ttfc.string(), ttfc.option(ttfc.double(), { nil: undefined })), ttfc.tuple(ttfc.string(), ttfc.option(ttfc.double(), { nil: undefined }), ttfc.option(ttfc.boolean(), { nil: undefined }))) });
+test({ arb: /* [(string | undefined)?, (number | undefined)?, (boolean | undefined)?] */ ttfc.oneof(ttfc.tuple(), ttfc.tuple(ttfc.option(ttfc.string(), { nil: undefined })), ttfc.tuple(ttfc.option(ttfc.string(), { nil: undefined }), ttfc.option(ttfc.double(), { nil: undefined })), ttfc.tuple(ttfc.option(ttfc.string(), { nil: undefined }), ttfc.option(ttfc.double(), { nil: undefined }), ttfc.option(ttfc.boolean(), { nil: undefined }))) });
 test({ arb: /* [string, number, ...boolean[]] */ ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.array(ttfc.boolean())).map(value => [value[0], value[1], ...value[2]]) });
 test({ arb: /* [string, ...number[], boolean] */ ttfc.tuple(ttfc.string(), ttfc.array(ttfc.double()), ttfc.boolean()).map(value => [value[0], ...value[1], value[2]]) });
 test({ arb: /* [...string[], number, boolean] */ ttfc.tuple(ttfc.array(ttfc.string()), ttfc.double(), ttfc.boolean()).map(value => [...value[0], value[1], value[2]]) });

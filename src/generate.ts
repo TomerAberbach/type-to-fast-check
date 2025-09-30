@@ -231,7 +231,7 @@ const generateTupleArbitrary = (
 ) => {
   const referenceType = type as ts.TypeReference
   const tupleType = referenceType.target as ts.TupleType
-  return tupleArbitrary(
+  const arbitrary = tupleArbitrary(
     typeChecker.getTypeArguments(referenceType).map((elementType, index) => {
       const arbitrary = generateArbitrary(elementType, typeChecker)
       return tupleType.elementFlags[index]! & ts.ElementFlags.Rest
@@ -239,6 +239,25 @@ const generateTupleArbitrary = (
         : { arbitrary, rest: false }
     }),
   )
+
+  const firstOptionalElementIndex = tupleType.elementFlags.findIndex(
+    flags => flags & ts.ElementFlags.Optional,
+  )
+  if (firstOptionalElementIndex === -1) {
+    return arbitrary
+  }
+
+  const variantArbitraries: Arbitrary[] = []
+  for (
+    let endIndex = firstOptionalElementIndex;
+    endIndex <= tupleType.elementFlags.length;
+    endIndex++
+  ) {
+    variantArbitraries.push(
+      tupleArbitrary(arbitrary.elements.slice(0, endIndex)),
+    )
+  }
+  return oneofArbitrary(variantArbitraries)
 }
 
 const generateArrayArbitrary = (

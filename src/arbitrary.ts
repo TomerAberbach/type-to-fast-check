@@ -14,6 +14,7 @@ export type Arbitrary =
   | ArrayArbitrary
   | TupleArbitrary
   | RecordArbitrary
+  | DictionaryArbitrary
   | ObjectArbitrary
   | FuncArbitrary
   | ConstantFromArbitrary
@@ -125,6 +126,16 @@ export const recordArbitrary = (
   properties: RecordArbitrary[`properties`],
 ): RecordArbitrary => memoize({ type: `record`, properties })
 
+export type DictionaryArbitrary = {
+  type: `dictionary`
+  key: Arbitrary
+  value: Arbitrary
+}
+
+export const dictionaryArbitrary = (
+  props: Pick<DictionaryArbitrary, `key` | `value`>,
+): DictionaryArbitrary => memoize({ type: `dictionary`, ...props })
+
 export type ObjectArbitrary = {
   type: `object`
 }
@@ -160,13 +171,12 @@ export const oneofArbitrary = (
 
 export type AssignArbitrary = {
   type: `assign`
-  target: Arbitrary
-  source: Arbitrary
+  arbitraries: Arbitrary[]
 }
 
 export const assignArbitrary = (
-  props: Pick<AssignArbitrary, `target` | `source`>,
-): AssignArbitrary => memoize({ type: `assign`, ...props })
+  arbitraries: AssignArbitrary[`arbitraries`],
+): AssignArbitrary => memoize({ type: `assign`, arbitraries })
 
 export type AnythingArbitrary = {
   type: `anything`
@@ -214,6 +224,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
           ([name, { required, arbitrary }]) => [name, required, arbitrary],
         ),
       ])
+    case `dictionary`:
+      return keyalesce([arbitrary.type, arbitrary.key, arbitrary.value])
     case `func`:
       return keyalesce([arbitrary.type, arbitrary.result])
     case `constantFrom`:
@@ -221,7 +233,7 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
     case `oneof`:
       return keyalesce([arbitrary.type, ...arbitrary.variants])
     case `assign`:
-      return keyalesce([arbitrary.type, arbitrary.target, arbitrary.source])
+      return keyalesce([arbitrary.type, ...arbitrary.arbitraries])
   }
 }
 

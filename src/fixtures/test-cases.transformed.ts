@@ -186,4 +186,9 @@ test({
 // Unknown
 test({ arb: /* unknown */ ttfc.anything() });
 test({ arb: /* any */ ttfc.anything() });
+// Operators
+const _value = 'Hello World!';
+test({ arb: /* string */ ttfc.string() });
+test({ arb: /* keyof Interface */ ttfc.constantFrom("a", "b") });
+test({ arb: /* "Hello World!" */ ttfc.constant("Hello World!") });
 export default testCases;

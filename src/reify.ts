@@ -167,8 +167,29 @@ const symbolArbitraryExpression = () =>
 const arrayArbitraryExpression = (arbitrary: ArrayArbitrary) =>
   fcCallExpression(`array`, [reifyArbitrary(arbitrary.items)])
 
-const tupleArbitraryExpression = (arbitrary: TupleArbitrary) =>
-  fcCallExpression(`tuple`, arbitrary.elements.map(reifyArbitrary))
+const tupleArbitraryExpression = (arbitrary: TupleArbitrary) => {
+  const tupleArbitraryExpression = fcCallExpression(
+    `tuple`,
+    arbitrary.elements.map(({ arbitrary }) => reifyArbitrary(arbitrary)),
+  )
+  if (arbitrary.elements.every(({ rest }) => !rest)) {
+    return tupleArbitraryExpression
+  }
+
+  return mapArbitraryExpression(tupleArbitraryExpression, valueIdentifier =>
+    ts.factory.createArrayLiteralExpression(
+      arbitrary.elements.map(({ rest }, index) => {
+        const elementExpression = ts.factory.createElementAccessExpression(
+          valueIdentifier,
+          index,
+        )
+        return rest
+          ? ts.factory.createSpreadElement(elementExpression)
+          : elementExpression
+      }),
+    ),
+  )
+}
 
 const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
   const properties = [...arbitrary.properties]

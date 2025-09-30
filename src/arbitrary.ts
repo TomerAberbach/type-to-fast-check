@@ -104,7 +104,7 @@ export const arrayArbitrary = (
 
 export type TupleArbitrary = {
   type: `tuple`
-  elements: Arbitrary[]
+  elements: { arbitrary: Arbitrary; rest: boolean }[]
 }
 
 export const tupleArbitrary = (
@@ -216,7 +216,13 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
     case `array`:
       return keyalesce([arbitrary.type, arbitrary.items])
     case `tuple`:
-      return keyalesce([arbitrary.type, ...arbitrary.elements])
+      return keyalesce([
+        arbitrary.type,
+        ...arbitrary.elements.flatMap(({ arbitrary, rest }) => [
+          arbitrary,
+          rest,
+        ]),
+      ])
     case `record`:
       return keyalesce([
         arbitrary.type,

@@ -4,10 +4,12 @@ import type { Arbitrary } from './arbitrary.ts'
 import {
   anythingArbitrary,
   arrayArbitrary,
+  assignArbitrary,
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
+  dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
   neverArbitrary,
@@ -72,7 +74,13 @@ const arbitraryArb = fc.letrec<
   symbol: fc.constant(symbolArbitrary()),
   array: tie(`arbitrary`).map(arrayArbitrary),
   tuple: fc
-    .array(tie(`arbitrary`), { minLength: 1, depthIdentifier })
+    .array(
+      fc.record(
+        { arbitrary: tie(`arbitrary`), rest: fc.boolean() },
+        { noNullPrototype: true },
+      ),
+      { minLength: 1, depthIdentifier },
+    )
     .map(tupleArbitrary),
   record: fc
     .uniqueArray(
@@ -86,6 +94,12 @@ const arbitraryArb = fc.letrec<
       { selector: ([name]) => name },
     )
     .map(entries => recordArbitrary(new Map(entries))),
+  dictionary: fc
+    .record(
+      { key: tie(`arbitrary`), value: tie(`arbitrary`) },
+      { noNullPrototype: true },
+    )
+    .map(dictionaryArbitrary),
   object: fc.constant(objectArbitrary()),
   func: tie(`arbitrary`).map(funcArbitrary),
   constantFrom: fc
@@ -94,6 +108,7 @@ const arbitraryArb = fc.letrec<
   oneof: fc
     .array(tie(`arbitrary`), { minLength: 1, depthIdentifier })
     .map(oneofArbitrary),
+  assign: fc.array(tie(`assign`), { depthIdentifier }).map(assignArbitrary),
   anything: fc.constant(anythingArbitrary()),
 })).arbitrary
 

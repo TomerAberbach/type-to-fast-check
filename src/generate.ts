@@ -228,12 +228,18 @@ const generateObjectLiteralArbitrary = (
 const generateTupleArbitrary = (
   type: ts.ObjectType,
   typeChecker: ts.TypeChecker,
-) =>
-  tupleArbitrary(
-    typeChecker
-      .getTypeArguments(type as ts.TupleType)
-      .map(elementType => generateArbitrary(elementType, typeChecker)),
+) => {
+  const referenceType = type as ts.TypeReference
+  const tupleType = referenceType.target as ts.TupleType
+  return tupleArbitrary(
+    typeChecker.getTypeArguments(referenceType).map((elementType, index) => {
+      const arbitrary = generateArbitrary(elementType, typeChecker)
+      return tupleType.elementFlags[index]! & ts.ElementFlags.Rest
+        ? { arbitrary: arrayArbitrary(arbitrary), rest: true }
+        : { arbitrary, rest: false }
+    }),
   )
+}
 
 const generateArrayArbitrary = (
   type: ts.TypeReference,

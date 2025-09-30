@@ -86,6 +86,11 @@ test({ arb: typeToArb<ReadonlyArray<string>>() })
 
 // Tuple
 test({ arb: typeToArb<[string, number]>() })
+test({ arb: typeToArb<[string, number, boolean]>() })
+test({ arb: typeToArb<[string, number, ...boolean[]]>() })
+test({ arb: typeToArb<[string, ...number[], boolean]>() })
+test({ arb: typeToArb<[...string[], number, boolean]>() })
+test({ arb: typeToArb<[string[], number[], boolean[]]>() })
 
 // Object
 test({ arb: typeToArb<{ a: string; b: number }>() })

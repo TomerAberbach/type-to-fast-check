@@ -153,7 +153,12 @@ const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
   arrayArbitrary(normalizeArbitrary(arbitrary.items))
 
 const normalizeTupleArbitrary = (arbitrary: TupleArbitrary): Arbitrary =>
-  tupleArbitrary(arbitrary.elements.map(normalizeArbitrary))
+  tupleArbitrary(
+    arbitrary.elements.map(({ arbitrary, rest }) => ({
+      arbitrary: normalizeArbitrary(arbitrary),
+      rest,
+    })),
+  )
 
 const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
   recordArbitrary(

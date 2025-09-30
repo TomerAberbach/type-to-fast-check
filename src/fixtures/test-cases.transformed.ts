@@ -73,6 +73,11 @@ test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
 test({ arb: /* readonly string[] */ ttfc.array(ttfc.string()) });
 // Tuple
 test({ arb: /* [string, number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
+test({ arb: /* [string, number, boolean] */ ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.boolean()) });
+test({ arb: /* [string, number, ...boolean[]] */ ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.array(ttfc.boolean())).map(value => [value[0], value[1], ...value[2]]) });
+test({ arb: /* [string, ...number[], boolean] */ ttfc.tuple(ttfc.string(), ttfc.array(ttfc.double()), ttfc.boolean()).map(value => [value[0], ...value[1], value[2]]) });
+test({ arb: /* [...string[], number, boolean] */ ttfc.tuple(ttfc.array(ttfc.string()), ttfc.double(), ttfc.boolean()).map(value => [...value[0], value[1], value[2]]) });
+test({ arb: /* [string[], number[], boolean[]] */ ttfc.tuple(ttfc.array(ttfc.string()), ttfc.array(ttfc.double()), ttfc.array(ttfc.boolean())) });
 // Object
 test({ arb: /* { a: string; b: number; } */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
 test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });

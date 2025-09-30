@@ -56,11 +56,11 @@ export const booleanArbitrary = (): BooleanArbitrary =>
 
 export type DoubleArbitrary = {
   type: `double`
-  constraints?: fc.DoubleConstraints
+  constraints: fc.DoubleConstraints | undefined
 }
 
 export const doubleArbitrary = (
-  constraints?: fc.DoubleConstraints,
+  constraints?: DoubleArbitrary[`constraints`],
 ): DoubleArbitrary => memoize({ type: `double`, constraints })
 
 export type BigIntArbitrary = {

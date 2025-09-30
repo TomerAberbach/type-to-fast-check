@@ -208,4 +208,10 @@ test({
 test({ arb: typeToArb<unknown>() })
 test({ arb: typeToArb<any>() })
 
+// Operators
+const _value = 'Hello World!'
+test({ arb: typeToArb<Interface[`a`]>() })
+test({ arb: typeToArb<keyof Interface>() })
+test({ arb: typeToArb<typeof _value>() })
+
 export default testCases

@@ -91,6 +91,12 @@ test({ arb: typeToArb<[string, number, ...boolean[]]>() })
 test({ arb: typeToArb<[string, ...number[], boolean]>() })
 test({ arb: typeToArb<[...string[], number, boolean]>() })
 test({ arb: typeToArb<[string[], number[], boolean[]]>() })
+test({ arb: typeToArb<readonly [string, number]>() })
+test({ arb: typeToArb<readonly [string, number, boolean]>() })
+test({ arb: typeToArb<readonly [string, number, ...boolean[]]>() })
+test({ arb: typeToArb<readonly [string, ...number[], boolean]>() })
+test({ arb: typeToArb<readonly [...string[], number, boolean]>() })
+test({ arb: typeToArb<readonly [string[], number[], boolean[]]>() })
 
 // Object
 test({ arb: typeToArb<{ a: string; b: number }>() })

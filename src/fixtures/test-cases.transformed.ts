@@ -1,4 +1,5 @@
 import * as ttfc from "fast-check";
+/* eslint-disable typescript/consistent-indexed-object-style */
 /* eslint-disable typescript/prefer-function-type */
 /* eslint-disable typescript/method-signature-style */
 /* eslint-disable typescript/consistent-type-definitions */
@@ -103,6 +104,12 @@ interface InterfaceWithFunctions {
     c: () => boolean;
 }
 test({ arb: /* InterfaceWithFunctions */ ttfc.record({ a: ttfc.func(ttfc.double()), b: ttfc.func(ttfc.string()), c: ttfc.func(ttfc.boolean()) }) });
+// Dictionary
+test({ arb: /* Record<string, number> */ ttfc.dictionary(ttfc.string(), ttfc.double()) });
+test({ arb: /* { [key: string]: number; } */ ttfc.dictionary(ttfc.string(), ttfc.double()) });
+test({ arb: /* { [key: string]: number; a: number; } */ ttfc.tuple(ttfc.dictionary(ttfc.string(), ttfc.double()), ttfc.record({ a: ttfc.double() })).map(value => globalThis.Object.assign(...value)) });
+test({ arb: /* { [key: string]: string | number; a: string; } */ ttfc.tuple(ttfc.dictionary(ttfc.string(), ttfc.oneof(ttfc.string(), ttfc.double())), ttfc.record({ a: ttfc.string() })).map(value => globalThis.Object.assign(...value)) });
+test({ arb: /* { [key: string]: boolean; [key: number]: boolean; } */ ttfc.dictionary(ttfc.oneof(ttfc.string(), ttfc.double()).map(value => globalThis.String(value)), ttfc.boolean()) });
 // Function
 test({ arb: /* () => string */ ttfc.func(ttfc.string()) });
 test({ arb: /* Function */ ttfc.func(ttfc.anything()), typecheck: false });

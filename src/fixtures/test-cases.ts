@@ -1,3 +1,4 @@
+/* eslint-disable typescript/consistent-indexed-object-style */
 /* eslint-disable typescript/prefer-function-type */
 /* eslint-disable typescript/method-signature-style */
 /* eslint-disable typescript/consistent-type-definitions */
@@ -118,6 +119,13 @@ interface InterfaceWithFunctions {
   c: () => boolean
 }
 test({ arb: typeToArb<InterfaceWithFunctions>() })
+
+// Dictionary
+test({ arb: typeToArb<Record<string, number>>() })
+test({ arb: typeToArb<{ [key: string]: number }>() })
+test({ arb: typeToArb<{ a: number; [key: string]: number }>() })
+test({ arb: typeToArb<{ a: string; [key: string]: number | string }>() })
+test({ arb: typeToArb<{ [key: string | number]: boolean }>() })
 
 // Function
 test({ arb: typeToArb<() => string>() })

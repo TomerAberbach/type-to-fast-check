@@ -5,6 +5,7 @@ import {
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
+  dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
   neverArbitrary,
@@ -19,6 +20,7 @@ import type {
   ArrayArbitrary,
   AssignArbitrary,
   ConstantFromArbitrary,
+  DictionaryArbitrary,
   FuncArbitrary,
   OneofArbitrary,
   OptionArbitrary,
@@ -50,6 +52,8 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
       return normalizeTupleArbitrary(arbitrary)
     case `record`:
       return normalizeRecordArbitrary(arbitrary)
+    case `dictionary`:
+      return normalizeDictionaryArbitrary(arbitrary)
     case `func`:
       return normalizeFuncArbitrary(arbitrary)
     case `constantFrom`:
@@ -95,6 +99,7 @@ const normalizeTemplateArbitrary = (
         case `array`:
         case `tuple`:
         case `record`:
+        case `dictionary`:
         case `object`:
         case `func`:
         case `constantFrom`:
@@ -159,6 +164,14 @@ const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
       ]),
     ),
   )
+
+const normalizeDictionaryArbitrary = (
+  arbitrary: DictionaryArbitrary,
+): Arbitrary =>
+  dictionaryArbitrary({
+    key: normalizeArbitrary(arbitrary.key),
+    value: normalizeArbitrary(arbitrary.value),
+  })
 
 const normalizeFuncArbitrary = (arbitrary: FuncArbitrary): Arbitrary =>
   funcArbitrary(normalizeArbitrary(arbitrary.result))
@@ -292,6 +305,7 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `array`:
     case `tuple`:
     case `record`:
+    case `dictionary`:
     case `object`:
     case `func`:
     case `assign`:
@@ -311,10 +325,29 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
   }
 }
 
-const normalizeAssignArbitrary = (arbitrary: AssignArbitrary): Arbitrary =>
-  assignArbitrary({
-    target: normalizeArbitrary(arbitrary.target),
-    source: normalizeArbitrary(arbitrary.source),
-  })
+const normalizeAssignArbitrary = (arbitrary: AssignArbitrary): Arbitrary => {
+  const normalizedArbitraries = arbitrary.arbitraries
+    .flatMap(arbitrary => {
+      const normalizedArbitrary = normalizeArbitrary(arbitrary)
+      return normalizedArbitrary.type === `assign`
+        ? normalizedArbitrary.arbitraries
+        : [normalizedArbitrary]
+    })
+    // Exclude trailing empty objects because they are no-ops.
+    .filter(
+      (arbitrary, index) =>
+        index === 0 ||
+        arbitrary.type !== `record` ||
+        arbitrary.properties.size > 0,
+    )
+  switch (normalizedArbitraries.length) {
+    case 0:
+      return neverArbitrary()
+    case 1:
+      return normalizedArbitraries[0]!
+    default:
+      return assignArbitrary(normalizedArbitraries)
+  }
+}
 
 export default normalizeArbitrary

@@ -6,6 +6,7 @@ import {
   bigIntArbitrary,
   booleanArbitrary,
   constantArbitrary,
+  dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
   neverArbitrary,
@@ -106,28 +107,22 @@ const generateObjectArbitrary = (
     callSignatures.length > 0
       ? generateFunctionArbitrary(type, typeChecker)
       : undefined
+  const indexArbitrary = generateIndexArbitrary(objectType, typeChecker)
 
   let objArbitrary: Arbitrary | undefined
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
-    if (
-      objectType.objectFlags & flag ||
-      (objectType.objectFlags & ts.ObjectFlags.Reference &&
-        (objectType as ts.TypeReference).target.objectFlags & flag)
-    ) {
+    if (matchesObjectFlag(objectType, flag)) {
       objArbitrary = generateArbitrary(objectType, typeChecker)
       break
     }
   }
 
-  if (
-    functionArbitrary &&
-    objArbitrary &&
-    (objArbitrary.type !== `record` || objArbitrary.properties.size > 0)
-  ) {
-    return assignArbitrary({ target: functionArbitrary, source: objArbitrary })
-  }
-
-  return functionArbitrary ?? objArbitrary ?? objectArbitrary()
+  const arbitraries = [functionArbitrary, indexArbitrary, objArbitrary].filter(
+    arbitrary => arbitrary !== undefined,
+  )
+  return arbitraries.length > 0
+    ? assignArbitrary(arbitraries)
+    : objectArbitrary()
 }
 
 const generateReferenceArbitrary = (
@@ -161,6 +156,52 @@ const generateFunctionArbitrary = (
       : oneofArbitrary(resultArbitraries),
   )
 }
+
+const generateIndexArbitrary = (
+  type: ts.ObjectType,
+  typeChecker: ts.TypeChecker,
+): Arbitrary | undefined => {
+  if (matchesObjectFlag(type, ts.ObjectFlags.Tuple)) {
+    return undefined
+  }
+
+  const indexInfos = typeChecker.getIndexInfosOfType(type)
+  if (indexInfos.length === 0) {
+    return undefined
+  }
+
+  const valueToKeyArbitraries = new Map<Arbitrary, Set<Arbitrary>>()
+  for (const { keyType, type } of indexInfos) {
+    const keyArbitrary = generateArbitrary(keyType, typeChecker)
+    const valueArbitrary = generateArbitrary(type, typeChecker)
+
+    let keyArbitraries = valueToKeyArbitraries.get(valueArbitrary)
+    if (!keyArbitraries) {
+      keyArbitraries = new Set()
+      valueToKeyArbitraries.set(valueArbitrary, keyArbitraries)
+    }
+    keyArbitraries.add(keyArbitrary)
+  }
+
+  return assignArbitrary(
+    Array.from(valueToKeyArbitraries, ([valueArbitrary, keyArbitraries]) =>
+      dictionaryArbitrary({
+        key: oneofArbitrary([...keyArbitraries]),
+        value: valueArbitrary,
+      }),
+    ),
+  )
+}
+
+const matchesObjectFlag = (
+  type: ts.ObjectType,
+  flag: ts.ObjectFlags,
+): boolean =>
+  Boolean(
+    type.objectFlags & flag ||
+      (type.objectFlags & ts.ObjectFlags.Reference &&
+        (type as ts.TypeReference).target.objectFlags & flag),
+  )
 
 const generateObjectLiteralArbitrary = (
   type: ts.ObjectType,

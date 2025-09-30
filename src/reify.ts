@@ -5,6 +5,7 @@ import type {
   AssignArbitrary,
   ConstantArbitrary,
   ConstantFromArbitrary,
+  DictionaryArbitrary,
   DoubleArbitrary,
   FuncArbitrary,
   OneofArbitrary,
@@ -39,6 +40,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
       return tupleArbitraryExpression(arbitrary)
     case `record`:
       return recordArbitraryExpression(arbitrary)
+    case `dictionary`:
+      return dictionaryArbitraryExpression(arbitrary)
     case `object`:
       return objectArbitraryExpression()
     case `func`:
@@ -190,6 +193,55 @@ const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
   ])
 }
 
+const dictionaryArbitraryExpression = (arbitrary: DictionaryArbitrary) => {
+  let keyArbitraryExpression = reifyArbitrary(arbitrary.key)
+  if (!isStringArbitrary(arbitrary.key)) {
+    keyArbitraryExpression = mapArbitraryExpression(
+      keyArbitraryExpression,
+      valueIdentifier =>
+        ts.factory.createCallExpression(
+          globalThisExpression(`String`),
+          undefined,
+          [valueIdentifier],
+        ),
+    )
+  }
+
+  return fcCallExpression(`dictionary`, [
+    keyArbitraryExpression,
+    reifyArbitrary(arbitrary.value),
+  ])
+}
+
+const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
+  switch (arbitrary.type) {
+    case `never`:
+    case `string`:
+    case `template`:
+      return true
+    case `constant`:
+      return typeof arbitrary.value === `string`
+    case `constantFrom`:
+      return arbitrary.constants.every(value => typeof value === `string`)
+    case `oneof`:
+      return arbitrary.variants.every(isStringArbitrary)
+    case `option`:
+    case `boolean`:
+    case `double`:
+    case `bigInt`:
+    case `symbol`:
+    case `array`:
+    case `tuple`:
+    case `record`:
+    case `dictionary`:
+    case `object`:
+    case `func`:
+    case `assign`:
+    case `anything`:
+      return false
+  }
+}
+
 const objectArbitraryExpression = () => fcCallExpression(`object`)
 
 const funcArbitraryExpression = (arbitrary: FuncArbitrary) =>
@@ -211,10 +263,7 @@ const oneofArbitraryExpression = (arbitrary: OneofArbitrary) =>
 
 const assignArbitraryExpression = (arbitrary: AssignArbitrary) =>
   mapArbitraryExpression(
-    fcCallExpression(`tuple`, [
-      reifyArbitrary(arbitrary.target),
-      reifyArbitrary(arbitrary.source),
-    ]),
+    fcCallExpression(`tuple`, arbitrary.arbitraries.map(reifyArbitrary)),
     valueIdentifier =>
       ts.factory.createCallExpression(
         ts.factory.createPropertyAccessExpression(

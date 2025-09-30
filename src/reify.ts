@@ -8,6 +8,7 @@ import type {
   DictionaryArbitrary,
   DoubleArbitrary,
   FuncArbitrary,
+  MapStringArbitrary,
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
@@ -32,6 +33,8 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
       return stringArbitraryExpression()
     case `template`:
       return templateArbitraryExpression(arbitrary)
+    case `mapString`:
+      return mapStringArbitraryExpression(arbitrary)
     case `symbol`:
       return symbolArbitraryExpression()
     case `array`:
@@ -157,6 +160,61 @@ const templateArbitraryExpression = (
   )
 }
 
+const mapStringArbitraryExpression = (arbitrary: MapStringArbitrary) =>
+  mapArbitraryExpression(
+    reifyArbitrary(arbitrary.arbitrary),
+    valueIdentifier => {
+      // See `applyStringMapping` here:
+      // https://raw.githubusercontent.com/microsoft/TypeScript/refs/heads/main/src/compiler/checker.ts
+      switch (arbitrary.operation) {
+        case `uppercase`:
+        case `lowercase`:
+          return ts.factory.createCallExpression(
+            ts.factory.createPropertyAccessExpression(
+              valueIdentifier,
+              arbitrary.operation === `uppercase`
+                ? `toUpperCase`
+                : `toLowerCase`,
+            ),
+            undefined,
+            undefined,
+          )
+        case `capitalize`:
+        case `uncapitalize`: {
+          const firstCharacterExpression = ts.factory.createCallExpression(
+            ts.factory.createPropertyAccessExpression(
+              valueIdentifier,
+              `charAt`,
+            ),
+            undefined,
+            [literalExpression(0)],
+          )
+          return ts.factory.createBinaryExpression(
+            ts.factory.createCallExpression(
+              ts.factory.createPropertyAccessExpression(
+                firstCharacterExpression,
+                arbitrary.operation === `capitalize`
+                  ? `toUpperCase`
+                  : `toLowerCase`,
+              ),
+              undefined,
+              undefined,
+            ),
+            ts.SyntaxKind.PlusToken,
+            ts.factory.createCallExpression(
+              ts.factory.createPropertyAccessExpression(
+                valueIdentifier,
+                `slice`,
+              ),
+              undefined,
+              [literalExpression(1)],
+            ),
+          )
+        }
+      }
+    },
+  )
+
 const symbolArbitraryExpression = () =>
   mapArbitraryExpression(fcCallExpression(`string`), valueIdentifier =>
     ts.factory.createCallExpression(globalThisExpression(`Symbol`), undefined, [
@@ -239,6 +297,7 @@ const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
     case `never`:
     case `string`:
     case `template`:
+    case `mapString`:
       return true
     case `constant`:
       return typeof arbitrary.value === `string`

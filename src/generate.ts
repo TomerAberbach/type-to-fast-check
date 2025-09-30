@@ -9,6 +9,7 @@ import {
   dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
+  mapStringArbitrary,
   neverArbitrary,
   objectArbitrary,
   oneofArbitrary,
@@ -18,7 +19,7 @@ import {
   templateArbitrary,
   tupleArbitrary,
 } from './arbitrary.ts'
-import type { Arbitrary } from './arbitrary.ts'
+import type { Arbitrary, MapStringArbitrary } from './arbitrary.ts'
 
 const generateArbitrary = (
   type: ts.Type,
@@ -84,6 +85,34 @@ const generateTemplateLiteralArbitrary = (
   }
 
   return templateArbitrary(template)
+}
+
+const generateStringMappingArbitrary = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+) => {
+  const stringMappingType = type as ts.StringMappingType
+  const arbitrary = generateArbitrary(stringMappingType.type, typeChecker)
+
+  let operation: MapStringArbitrary[`operation`]
+  switch (stringMappingType.symbol.name) {
+    case `Uppercase`:
+      operation = `uppercase`
+      break
+    case `Lowercase`:
+      operation = `lowercase`
+      break
+    case `Capitalize`:
+      operation = `capitalize`
+      break
+    case `Uncapitalize`:
+      operation = `uncapitalize`
+      break
+    default:
+      return arbitrary
+  }
+
+  return mapStringArbitrary({ arbitrary, operation })
 }
 
 const generateSymbolArbitrary = () => symbolArbitrary()
@@ -309,6 +338,7 @@ const typeGenerators = new Map<
   [ts.TypeFlags.String, generateStringArbitrary],
   [ts.TypeFlags.StringLiteral, generateStringLiteralArbitrary],
   [ts.TypeFlags.TemplateLiteral, generateTemplateLiteralArbitrary],
+  [ts.TypeFlags.StringMapping, generateStringMappingArbitrary],
   [ts.TypeFlags.ESSymbol, generateSymbolArbitrary],
   [ts.TypeFlags.UniqueESSymbol, generateSymbolArbitrary],
   [ts.TypeFlags.Object, generateObjectArbitrary],

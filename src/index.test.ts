@@ -10,7 +10,7 @@ const fixturesPath = `${import.meta.dirname}/fixtures`
 
 const tsCode = await fs.readFile(`${fixturesPath}/test-cases.ts`, `utf8`)
 const types = Array.from(
-  tsCode.matchAll(/typeToArb<(?<type>.+)>\(\)/gu),
+  tsCode.matchAll(/typeToArb<(?<type>(?:.|\n)(?:.|\n)*?)>\(\)/gu),
   ({ groups }) => groups?.type ?? `?`,
 )
 const { transformedTsCode, jsCode, errorDiagnostics } = transpileTypeScript(

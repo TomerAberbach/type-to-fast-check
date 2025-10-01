@@ -240,15 +240,10 @@ const generateObjectLiteralArbitrary = (
     new Map(
       typeChecker.getPropertiesOfType(type).map(symbol => {
         const required = !(symbol.flags & ts.SymbolFlags.Optional)
-        const arbitrary = symbol.valueDeclaration
-          ? generateArbitrary(
-              typeChecker.getTypeOfSymbolAtLocation(
-                symbol,
-                symbol.valueDeclaration,
-              ),
-              typeChecker,
-            )
-          : anythingArbitrary()
+        const arbitrary = generateArbitrary(
+          typeChecker.getTypeOfSymbol(symbol),
+          typeChecker,
+        )
         return [symbol.name, { required, arbitrary }]
       }),
     ),
@@ -356,6 +351,7 @@ const objectTypeGenerators = new Map<
   [ts.ObjectFlags.Anonymous, generateObjectLiteralArbitrary],
   [ts.ObjectFlags.Interface, generateObjectLiteralArbitrary],
   [ts.ObjectFlags.Tuple, generateTupleArbitrary],
+  [ts.ObjectFlags.Mapped, generateObjectLiteralArbitrary],
 ])
 
 const builtinTypeGenerators = new Map<

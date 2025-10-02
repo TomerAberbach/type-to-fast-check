@@ -113,6 +113,17 @@ test({ arb: typeToArb<readonly [string[], number[], boolean[]]>() })
 test({ arb: typeToArb<{ a: string; b: number }>() })
 test({ arb: typeToArb<{ a: string; b: number | undefined }>() })
 test({ arb: typeToArb<{ a: string; b?: number }>() })
+test({ arb: typeToArb<Partial<{ a: string; b?: number }>>() })
+test({ arb: typeToArb<Required<{ a: string; b?: number }>>() })
+test({ arb: typeToArb<Readonly<{ a: string; b?: number }>>() })
+test({ arb: typeToArb<Pick<{ a: string; b?: number; c: boolean }, 'a'>>() })
+test({
+  arb: typeToArb<Pick<{ a: string; b?: number; c: boolean }, 'a' | 'c'>>(),
+})
+test({ arb: typeToArb<Omit<{ a: string; b?: number; c: boolean }, 'a'>>() })
+test({
+  arb: typeToArb<Omit<{ a: string; b?: number; c: boolean }, 'a' | 'c'>>(),
+})
 test({ arb: typeToArb<object>() })
 
 // Interface
@@ -142,6 +153,18 @@ interface InterfaceWithFunctions {
 }
 test({ arb: typeToArb<InterfaceWithFunctions>() })
 
+// Class
+class _C {
+  public readonly _x: string
+  public readonly _y: number
+
+  public constructor(a: string, b: number) {
+    this._x = a
+    this._y = b
+  }
+}
+test({ arb: typeToArb<ConstructorParameters<typeof _C>>() })
+
 // Dictionary
 test({ arb: typeToArb<Record<string, number>>() })
 test({ arb: typeToArb<{ [key: string]: number }>() })
@@ -164,6 +187,13 @@ interface CallableInterface {
   (): string
 }
 test({ arb: typeToArb<CallableInterface>(), typecheck: false })
+declare function _f(a: string, b: number): boolean
+test({ arb: typeToArb<typeof _f>() })
+test({ arb: typeToArb<Parameters<typeof _f>>() })
+test({ arb: typeToArb<ReturnType<typeof _f>>() })
+declare function _g(this: { x: number }, a: string, b: number): boolean
+test({ arb: typeToArb<ThisParameterType<typeof _g>>() })
+test({ arb: typeToArb<OmitThisParameter<typeof _g>>() })
 
 // Enum
 enum StringEnum {
@@ -215,6 +245,21 @@ test({ arb: typeToArb<string | null>() })
 test({ arb: typeToArb<string | undefined | null>() })
 test({ arb: typeToArb<string | number>() })
 test({ arb: typeToArb<string | never>() })
+test({ arb: typeToArb<Exclude<string | undefined, string>>() })
+test({
+  arb: typeToArb<
+    Exclude<{ type: 'a'; a: string } | { type: 'b'; b: string }, { type: 'b' }>
+  >(),
+})
+test({ arb: typeToArb<Extract<string | undefined, string>>() })
+test({
+  arb: typeToArb<
+    Extract<{ type: 'a'; a: string } | { type: 'b'; b: string }, { type: 'b' }>
+  >(),
+})
+test({ arb: typeToArb<NonNullable<string>>() })
+test({ arb: typeToArb<NonNullable<string | null>>() })
+test({ arb: typeToArb<NonNullable<string | undefined | null>>() })
 
 // Type parameter
 test({

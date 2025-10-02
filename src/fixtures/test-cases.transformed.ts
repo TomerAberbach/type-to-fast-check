@@ -99,6 +99,17 @@ test({ arb: /* readonly [string[], number[], boolean[]] */ ttfc.tuple(ttfc.array
 test({ arb: /* { a: string; b: number; } */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
 test({ arb: /* { a: string; b: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
 test({ arb: /* { a: string; b?: number | undefined; } */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+test({ arb: /* Partial<{ a: string; b?: number | undefined; }> */ ttfc.record({ a: ttfc.option(ttfc.string(), { nil: undefined }), b: ttfc.option(ttfc.double(), { nil: undefined }) }) });
+test({ arb: /* Required<{ a: string; b?: number | undefined; }> */ ttfc.record({ a: ttfc.string(), b: ttfc.double() }) });
+test({ arb: /* Readonly<{ a: string; b?: number | undefined; }> */ ttfc.record({ a: ttfc.string(), b: ttfc.option(ttfc.double(), { nil: undefined }) }, { requiredKeys: ["a"] }) });
+test({ arb: /* Pick<{ a: string; b?: number | undefined; c: boolean; }, "a"> */ ttfc.record({ a: ttfc.string() }) });
+test({
+    arb: /* Pick<{ a: string; b?: number | undefined; c: boolean; }, "a" | "c"> */ ttfc.record({ a: ttfc.string(), c: ttfc.boolean() }),
+});
+test({ arb: /* Omit<{ a: string; b?: number | undefined; c: boolean; }, "a"> */ ttfc.record({ b: ttfc.option(ttfc.double(), { nil: undefined }), c: ttfc.boolean() }, { requiredKeys: ["c"] }) });
+test({
+    arb: /* Omit<{ a: string; b?: number | undefined; c: boolean; }, "a" | "c"> */ ttfc.record({ b: ttfc.option(ttfc.double(), { nil: undefined }) }),
+});
 test({ arb: /* object */ ttfc.object() });
 // Interface
 interface Interface {
@@ -126,6 +137,16 @@ interface InterfaceWithFunctions {
     c: () => boolean;
 }
 test({ arb: /* InterfaceWithFunctions */ ttfc.record({ a: ttfc.func(ttfc.double()), b: ttfc.func(ttfc.string()), c: ttfc.func(ttfc.boolean()) }) });
+// Class
+class _C {
+    public readonly _x: string;
+    public readonly _y: number;
+    public constructor(a: string, b: number) {
+        this._x = a;
+        this._y = b;
+    }
+}
+test({ arb: /* [a: string, b: number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
 // Dictionary
 test({ arb: /* Record<string, number> */ ttfc.dictionary(ttfc.string(), ttfc.double()) });
 test({ arb: /* { [key: string]: number; } */ ttfc.dictionary(ttfc.string(), ttfc.double()) });
@@ -147,6 +168,15 @@ interface CallableInterface {
     (): string;
 }
 test({ arb: /* CallableInterface */ ttfc.tuple(ttfc.func(ttfc.string()), ttfc.record({ a: ttfc.string(), b: ttfc.func(ttfc.double()) })).map(value => globalThis.Object.assign(...value)), typecheck: false });
+declare function _f(a: string, b: number): boolean;
+test({ arb: /* (a: string, b: number) => boolean */ ttfc.func(ttfc.boolean()) });
+test({ arb: /* [a: string, b: number] */ ttfc.tuple(ttfc.string(), ttfc.double()) });
+test({ arb: /* boolean */ ttfc.boolean() });
+declare function _g(this: {
+    x: number;
+}, a: string, b: number): boolean;
+test({ arb: /* { x: number; } */ ttfc.record({ x: ttfc.double() }) });
+test({ arb: /* (a: string, b: number) => boolean */ ttfc.func(ttfc.boolean()) });
 // Enum
 enum StringEnum {
     B = 'b',
@@ -190,11 +220,22 @@ test({ arb: /* boolean */ ttfc.boolean() });
 test({ arb: /* boolean */ ttfc.boolean() });
 test({ arb: /* 1 | 3 | 2 | 4 */ ttfc.constantFrom(1, 2, 3, 4) });
 test({ arb: /* 1n | 3n | 2n | 4n */ ttfc.constantFrom(1n, 2n, 3n, 4n) });
-test({ arb: /* "b" | "a" | "d" | "c" */ ttfc.constantFrom("a", "b", "c", "d") });
+test({ arb: /* "a" | "b" | "c" | "d" */ ttfc.constantFrom("a", "b", "c", "d") });
 test({ arb: /* string | undefined */ ttfc.option(ttfc.string(), { nil: undefined }) });
 test({ arb: /* string | null */ ttfc.option(ttfc.string()) });
 test({ arb: /* string | null | undefined */ ttfc.oneof(ttfc.string(), ttfc.constantFrom(null, undefined)) });
 test({ arb: /* string | number */ ttfc.oneof(ttfc.string(), ttfc.double()) });
+test({ arb: /* string */ ttfc.string() });
+test({ arb: /* undefined */ ttfc.constant(undefined) });
+test({
+    arb: /* { type: "a"; a: string; } */ ttfc.record({ type: ttfc.constant("a"), a: ttfc.string() }),
+});
+test({ arb: /* string */ ttfc.string() });
+test({
+    arb: /* { type: "b"; b: string; } */ ttfc.record({ type: ttfc.constant("b"), b: ttfc.string() }),
+});
+test({ arb: /* string */ ttfc.string() });
+test({ arb: /* string */ ttfc.string() });
 test({ arb: /* string */ ttfc.string() });
 // Type parameter
 test({

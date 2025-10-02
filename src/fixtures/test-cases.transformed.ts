@@ -831,6 +831,30 @@ test({
     // string
     ttfc.string(),
 })
+// Conditional
+test({
+  arb:
+    // "yes"
+    ttfc.constant('yes'),
+})
+type IsBoolean<T> = {
+  answer: T extends boolean ? 'yes' : 'no'
+}
+test({
+  arb:
+    // IsBoolean<false>
+    ttfc.record({ answer: ttfc.constant('yes') }),
+})
+test({
+  arb:
+    // IsBoolean<true>
+    ttfc.record({ answer: ttfc.constant('yes') }),
+})
+test({
+  arb:
+    // IsBoolean<"true">
+    ttfc.record({ answer: ttfc.constant('no') }),
+})
 // Mapped
 type O = {
   readonly a: string

@@ -13,10 +13,8 @@ const types = Array.from(
   tsCode.matchAll(/typeToArb<(?<type>(?:.|\n)(?:.|\n)*?)>\(\)/gu),
   ({ groups }) => groups?.type ?? `?`,
 )
-const { transformedTsCode, jsCode, errorDiagnostics } = transpileTypeScript(
-  tsCode,
-  { transform: true },
-)
+const { transformedTsCode, jsCode, errorDiagnostics } =
+  await transpileTypeScript(tsCode, { transform: true })
 const testCases = (
   (await importFromString(jsCode)) as typeof TestCases
 ).default.map((testCase, index) => ({ type: types[index]!, ...testCase }))
@@ -41,13 +39,13 @@ for (const { type, arb, typecheck = true } of testCases) {
       fc.array(arb, { minLength: BATCH_SIZE, maxLength: BATCH_SIZE }),
     ],
     { numRuns: 100 / BATCH_SIZE },
-  )(`typeToArb<${type}>() generates correct types`, (context, values) => {
+  )(`typeToArb<${type}>() generates correct types`, async (context, values) => {
     const statement = `export const check: Array<${type}> = [${values
       .map(toJs)
       .join(`, `)}]`
     context.log(statement)
 
-    const { errorDiagnostics } = transpileTypeScript(
+    const { errorDiagnostics } = await transpileTypeScript(
       [
         // For when `type` references something defined in `test-cases.ts`
         tsCode,

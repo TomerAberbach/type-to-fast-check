@@ -2,7 +2,7 @@ import ts from 'typescript'
 import { addFastCheckImport } from './fast-check.ts'
 import generateArbitrary from './generate.ts'
 import normalizeArbitrary from './normalize.ts'
-import reifyArbitrary from './reify.ts'
+import reifyArbitraryInternal from './reify.ts'
 
 const createTransformer = (
   program: ts.Program,
@@ -59,9 +59,10 @@ const visitTypeToArbCallExpression = (
   const arbitrary = generateArbitrary(type, typeChecker)
   const normalizedArbitrary = normalizeArbitrary(arbitrary)
   return ts.addSyntheticLeadingComment(
-    reifyArbitrary(normalizedArbitrary),
-    ts.SyntaxKind.MultiLineCommentTrivia,
+    reifyArbitraryInternal(normalizedArbitrary),
+    ts.SyntaxKind.SingleLineCommentTrivia,
     ` ${typeChecker.typeToString(type)} `,
+    true,
   )
 }
 

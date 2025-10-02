@@ -261,6 +261,27 @@ test({ arb: typeToArb<NonNullable<string>>() })
 test({ arb: typeToArb<NonNullable<string | null>>() })
 test({ arb: typeToArb<NonNullable<string | undefined | null>>() })
 
+// Mapped
+type O = { readonly a: string; b?: string }
+test({ arb: typeToArb<{ [Key in keyof O]: O[Key] }>() })
+test({ arb: typeToArb<{ [Key in keyof O]: boolean }>() })
+test({ arb: typeToArb<{ -readonly [Key in keyof O]: O[Key] }>() })
+test({ arb: typeToArb<{ +readonly [Key in keyof O]: O[Key] }>() })
+test({ arb: typeToArb<{ [Key in keyof O]-?: O[Key] }>() })
+test({ arb: typeToArb<{ [Key in keyof O]+?: O[Key] }>() })
+test({ arb: typeToArb<{ [Key in keyof O as `${Key}${Key}`]: O[Key] }>() })
+
+// Recursion
+type Node = { value: number; next?: Node }
+test({ arb: typeToArb<Node>() })
+test({ arb: typeToArb<{ node: Node }>() })
+type NodeA = { value: number; next?: NodeA | NodeB }
+type NodeB = { value: string; next?: NodeA | NodeB }
+test({ arb: typeToArb<NodeA>() })
+test({ arb: typeToArb<{ node: NodeA }>() })
+type NodeC = { value: number; next?: NodeA | NodeB; node: Node }
+test({ arb: typeToArb<NodeC>() })
+
 // Type parameter
 test({
   arb: (<T>() => typeToArb<T>())(),

@@ -10,6 +10,7 @@ import {
   doubleArbitrary,
   funcArbitrary,
   mapStringArbitrary,
+  mutableArbitrary,
   neverArbitrary,
   objectArbitrary,
   oneofArbitrary,
@@ -17,21 +18,42 @@ import {
   stringArbitrary,
   symbolArbitrary,
   templateArbitrary,
+  tieArbitrary,
   tupleArbitrary,
 } from './arbitrary.ts'
-import type { Arbitrary, MapStringArbitrary } from './arbitrary.ts'
+import type {
+  Arbitrary,
+  MapStringArbitrary,
+  MutableArbitrary,
+} from './arbitrary.ts'
 
 const generateArbitrary = (
   type: ts.Type,
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
+  let arbitrary = unsetMutableArbitraries.get(type)
+  if (arbitrary) {
+    return tieArbitrary(arbitrary)
+  }
+
+  // Set the arbitrary now to avoid infinite recursion for recursive types.
+  arbitrary = mutableArbitrary(null)
+  unsetMutableArbitraries.set(type, arbitrary)
+
   for (const [flag, generateArbitrary] of typeGenerators) {
     if (type.flags & flag) {
-      return generateArbitrary(type, typeChecker)
+      arbitrary.value = generateArbitrary(type, typeChecker)
+      break
     }
   }
-  return anythingArbitrary()
+  arbitrary.value ??= anythingArbitrary()
+
+  unsetMutableArbitraries.delete(type)
+
+  return arbitrary
 }
+
+const unsetMutableArbitraries = new Map<ts.Type, MutableArbitrary>()
 
 const generateNeverArbitrary = () => neverArbitrary()
 

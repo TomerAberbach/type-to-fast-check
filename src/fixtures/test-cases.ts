@@ -261,6 +261,13 @@ test({ arb: typeToArb<NonNullable<string>>() })
 test({ arb: typeToArb<NonNullable<string | null>>() })
 test({ arb: typeToArb<NonNullable<string | undefined | null>>() })
 
+// Conditional
+test({ arb: typeToArb<true extends boolean ? 'yes' : 'no'>() })
+type IsBoolean<T> = { answer: T extends boolean ? 'yes' : 'no' }
+test({ arb: typeToArb<IsBoolean<false>>() })
+test({ arb: typeToArb<IsBoolean<true>>() })
+test({ arb: typeToArb<IsBoolean<'true'>>() })
+
 // Mapped
 type O = { readonly a: string; b?: string }
 test({ arb: typeToArb<{ [Key in keyof O]: O[Key] }>() })

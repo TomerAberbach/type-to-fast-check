@@ -1,3 +1,6 @@
+// @ts-expect-error No types
+import prettierConfig from '@tomer/prettier-config'
+import prettier from 'prettier'
 import ts from 'typescript'
 import createTransformer from './transformer.ts'
 
@@ -43,14 +46,14 @@ class TypeScriptCompiler {
     }
   }
 
-  public transpile(
+  public async transpile(
     tsCode: string,
     { transform = false }: { transform?: boolean } = {},
-  ): {
+  ): Promise<{
     transformedTsCode: string
     jsCode: string
     errorDiagnostics: string[]
-  } {
+  }> {
     const sourceFile = this.#createSourceFile(tsCode)
 
     const program = ts.createProgram(
@@ -75,6 +78,11 @@ class TypeScriptCompiler {
       } finally {
         transformResult.dispose()
       }
+
+      transformedTsCode = await prettier.format(transformedTsCode, {
+        ...(prettierConfig as prettier.Options),
+        filepath: sourceFile.fileName,
+      })
     } else {
       transformedTsCode = tsCode
     }

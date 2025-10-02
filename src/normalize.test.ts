@@ -29,11 +29,12 @@ type FilterByType<T, K> = T extends { type: K } ? T : never
 
 const depthIdentifier = fc.createDepthIdentifier()
 const arbitraryArb = fc.letrec<
-  {
-    [Type in Arbitrary[`type`]]: FilterByType<Arbitrary, Type>
-  } & {
-    arbitrary: Arbitrary
-  }
+  Omit<
+    {
+      [Type in Arbitrary[`type`]]: FilterByType<Arbitrary, Type>
+    },
+    `mutable` | `tie`
+  > & { arbitrary: Arbitrary }
 >(tie => ({
   arbitrary: fc.oneof(
     { depthIdentifier },

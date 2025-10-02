@@ -1,4 +1,5 @@
 import ts from 'typescript'
+import { collectTieArbitraries } from './arbitrary.ts'
 import type {
   Arbitrary,
   ArrayArbitrary,
@@ -13,12 +14,71 @@ import type {
   OptionArbitrary,
   RecordArbitrary,
   TemplateArbitrary,
+  TieArbitrary,
   TupleArbitrary,
 } from './arbitrary.ts'
 import { fcCallExpression } from './fast-check.ts'
 
-const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
+export const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
+  const tieArbitraryNames = assignTieArbitraryNames(arbitrary)
+  if (tieArbitraryNames.size === 0) {
+    return reifyArbitraryInternal(arbitrary, tieArbitraryNames)
+  }
+
+  const propertyAssignments = Array.from(
+    tieArbitraryNames,
+    ([tieArbitrary, name]) =>
+      ts.factory.createPropertyAssignment(
+        name,
+        reifyArbitraryInternal(tieArbitrary.arbitrary, tieArbitraryNames),
+      ),
+  )
+
+  let arbIdentifier: string
+  if (arbitrary.type === `tie`) {
+    arbIdentifier = tieArbitraryNames.get(arbitrary)!
+  } else {
+    arbIdentifier = `arb`
+    propertyAssignments.push(
+      ts.factory.createPropertyAssignment(
+        arbIdentifier,
+        reifyArbitraryInternal(arbitrary, tieArbitraryNames),
+      ),
+    )
+  }
+
+  return ts.factory.createPropertyAccessExpression(
+    fcCallExpression(`letrec`, [
+      ts.factory.createArrowFunction(
+        undefined,
+        undefined,
+        [ts.factory.createParameterDeclaration(undefined, undefined, `tie`)],
+        undefined,
+        undefined,
+        ts.factory.createObjectLiteralExpression(propertyAssignments),
+      ),
+    ]),
+    arbIdentifier,
+  )
+}
+
+const assignTieArbitraryNames = (
+  arbitrary: Arbitrary,
+): Map<TieArbitrary, string> => {
+  const tieArbitraryNames = new Map<TieArbitrary, string>()
+  for (const tieArbitrary of collectTieArbitraries(arbitrary)) {
+    tieArbitraryNames.set(tieArbitrary, `arb${tieArbitraryNames.size}`)
+  }
+  return tieArbitraryNames
+}
+
+const reifyArbitraryInternal = (
+  arbitrary: Arbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+): ts.Expression => {
   switch (arbitrary.type) {
+    case `mutable`:
+      throw new Error(`Unsupported type`)
     case `never`:
       return neverArbitraryExpression()
     case `constant`:
@@ -32,33 +92,35 @@ const reifyArbitrary = (arbitrary: Arbitrary): ts.Expression => {
     case `string`:
       return stringArbitraryExpression()
     case `template`:
-      return templateArbitraryExpression(arbitrary)
+      return templateArbitraryExpression(arbitrary, tieArbitraryNames)
     case `mapString`:
-      return mapStringArbitraryExpression(arbitrary)
+      return mapStringArbitraryExpression(arbitrary, tieArbitraryNames)
     case `symbol`:
       return symbolArbitraryExpression()
     case `array`:
-      return arrayArbitraryExpression(arbitrary)
+      return arrayArbitraryExpression(arbitrary, tieArbitraryNames)
     case `tuple`:
-      return tupleArbitraryExpression(arbitrary)
+      return tupleArbitraryExpression(arbitrary, tieArbitraryNames)
     case `record`:
-      return recordArbitraryExpression(arbitrary)
+      return recordArbitraryExpression(arbitrary, tieArbitraryNames)
     case `dictionary`:
-      return dictionaryArbitraryExpression(arbitrary)
+      return dictionaryArbitraryExpression(arbitrary, tieArbitraryNames)
     case `object`:
       return objectArbitraryExpression()
     case `func`:
-      return funcArbitraryExpression(arbitrary)
+      return funcArbitraryExpression(arbitrary, tieArbitraryNames)
     case `option`:
-      return optionArbitraryExpression(arbitrary)
+      return optionArbitraryExpression(arbitrary, tieArbitraryNames)
     case `constantFrom`:
       return constantFromArbitraryExpression(arbitrary)
     case `oneof`:
-      return oneofArbitraryExpression(arbitrary)
+      return oneofArbitraryExpression(arbitrary, tieArbitraryNames)
     case `assign`:
-      return assignArbitraryExpression(arbitrary)
+      return assignArbitraryExpression(arbitrary, tieArbitraryNames)
     case `anything`:
       return anythingArbitraryExpression()
+    case `tie`:
+      return tieArbitraryExpression(arbitrary, tieArbitraryNames)
   }
 }
 
@@ -96,10 +158,11 @@ const stringArbitraryExpression = () => fcCallExpression(`string`)
 
 const templateArbitraryExpression = (
   arbitrary: TemplateArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
 ): ts.Expression => {
   const arbitraryExpressions = arbitrary.segments
     .filter(segment => typeof segment !== `string`)
-    .map(reifyArbitrary)
+    .map(arbitrary => reifyArbitraryInternal(arbitrary, tieArbitraryNames))
   return mapArbitraryExpression(
     arbitraryExpressions.length === 1
       ? arbitraryExpressions[0]!
@@ -160,9 +223,12 @@ const templateArbitraryExpression = (
   )
 }
 
-const mapStringArbitraryExpression = (arbitrary: MapStringArbitrary) =>
+const mapStringArbitraryExpression = (
+  arbitrary: MapStringArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
   mapArbitraryExpression(
-    reifyArbitrary(arbitrary.arbitrary),
+    reifyArbitraryInternal(arbitrary.arbitrary, tieArbitraryNames),
     valueIdentifier => {
       // See `applyStringMapping` here:
       // https://raw.githubusercontent.com/microsoft/TypeScript/refs/heads/main/src/compiler/checker.ts
@@ -222,13 +288,23 @@ const symbolArbitraryExpression = () =>
     ]),
   )
 
-const arrayArbitraryExpression = (arbitrary: ArrayArbitrary) =>
-  fcCallExpression(`array`, [reifyArbitrary(arbitrary.items)])
+const arrayArbitraryExpression = (
+  arbitrary: ArrayArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
+  fcCallExpression(`array`, [
+    reifyArbitraryInternal(arbitrary.items, tieArbitraryNames),
+  ])
 
-const tupleArbitraryExpression = (arbitrary: TupleArbitrary) => {
+const tupleArbitraryExpression = (
+  arbitrary: TupleArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) => {
   const tupleArbitraryExpression = fcCallExpression(
     `tuple`,
-    arbitrary.elements.map(({ arbitrary }) => reifyArbitrary(arbitrary)),
+    arbitrary.elements.map(({ arbitrary }) =>
+      reifyArbitraryInternal(arbitrary, tieArbitraryNames),
+    ),
   )
   if (arbitrary.elements.every(({ rest }) => !rest)) {
     return tupleArbitraryExpression
@@ -249,7 +325,10 @@ const tupleArbitraryExpression = (arbitrary: TupleArbitrary) => {
   )
 }
 
-const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
+const recordArbitraryExpression = (
+  arbitrary: RecordArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) => {
   const properties = [...arbitrary.properties]
   const requiredPropertyNames = properties.flatMap(([name, { required }]) =>
     required ? [name] : [],
@@ -261,7 +340,7 @@ const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
           typeof name === `string`
             ? name
             : ts.factory.createComputedPropertyName(literalExpression(name)),
-          reifyArbitrary(arbitrary),
+          reifyArbitraryInternal(arbitrary, tieArbitraryNames),
         ),
       ),
     ),
@@ -272,8 +351,14 @@ const recordArbitraryExpression = (arbitrary: RecordArbitrary) => {
   ])
 }
 
-const dictionaryArbitraryExpression = (arbitrary: DictionaryArbitrary) => {
-  let keyArbitraryExpression = reifyArbitrary(arbitrary.key)
+const dictionaryArbitraryExpression = (
+  arbitrary: DictionaryArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) => {
+  let keyArbitraryExpression = reifyArbitraryInternal(
+    arbitrary.key,
+    tieArbitraryNames,
+  )
   if (!isStringArbitrary(arbitrary.key)) {
     keyArbitraryExpression = mapArbitraryExpression(
       keyArbitraryExpression,
@@ -288,7 +373,7 @@ const dictionaryArbitraryExpression = (arbitrary: DictionaryArbitrary) => {
 
   return fcCallExpression(`dictionary`, [
     keyArbitraryExpression,
-    reifyArbitrary(arbitrary.value),
+    reifyArbitraryInternal(arbitrary.value, tieArbitraryNames),
   ])
 }
 
@@ -305,6 +390,9 @@ const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
       return arbitrary.constants.every(value => typeof value === `string`)
     case `oneof`:
       return arbitrary.variants.every(isStringArbitrary)
+    case `tie`:
+      return isStringArbitrary(arbitrary.arbitrary)
+    case `mutable`:
     case `option`:
     case `boolean`:
     case `double`:
@@ -324,12 +412,20 @@ const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
 
 const objectArbitraryExpression = () => fcCallExpression(`object`)
 
-const funcArbitraryExpression = (arbitrary: FuncArbitrary) =>
-  fcCallExpression(`func`, [reifyArbitrary(arbitrary.result)])
+const funcArbitraryExpression = (
+  arbitrary: FuncArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
+  fcCallExpression(`func`, [
+    reifyArbitraryInternal(arbitrary.result, tieArbitraryNames),
+  ])
 
-const optionArbitraryExpression = (arbitrary: OptionArbitrary) =>
+const optionArbitraryExpression = (
+  arbitrary: OptionArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
   fcCallExpression(`option`, [
-    reifyArbitrary(arbitrary.arbitrary),
+    reifyArbitraryInternal(arbitrary.arbitrary, tieArbitraryNames),
     ...(arbitrary.nil === undefined
       ? [literalExpression({ nil: undefined })]
       : []),
@@ -338,12 +434,28 @@ const optionArbitraryExpression = (arbitrary: OptionArbitrary) =>
 const constantFromArbitraryExpression = (arbitrary: ConstantFromArbitrary) =>
   fcCallExpression(`constantFrom`, arbitrary.constants.map(literalExpression))
 
-const oneofArbitraryExpression = (arbitrary: OneofArbitrary) =>
-  fcCallExpression(`oneof`, arbitrary.variants.map(reifyArbitrary))
+const oneofArbitraryExpression = (
+  arbitrary: OneofArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
+  fcCallExpression(
+    `oneof`,
+    arbitrary.variants.map(variant =>
+      reifyArbitraryInternal(variant, tieArbitraryNames),
+    ),
+  )
 
-const assignArbitraryExpression = (arbitrary: AssignArbitrary) =>
+const assignArbitraryExpression = (
+  arbitrary: AssignArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) =>
   mapArbitraryExpression(
-    fcCallExpression(`tuple`, arbitrary.arbitraries.map(reifyArbitrary)),
+    fcCallExpression(
+      `tuple`,
+      arbitrary.arbitraries.map(arbitrary =>
+        reifyArbitraryInternal(arbitrary, tieArbitraryNames),
+      ),
+    ),
     valueIdentifier =>
       ts.factory.createCallExpression(
         ts.factory.createPropertyAccessExpression(
@@ -356,6 +468,21 @@ const assignArbitraryExpression = (arbitrary: AssignArbitrary) =>
   )
 
 const anythingArbitraryExpression = () => fcCallExpression(`anything`)
+
+const tieArbitraryExpression = (
+  arbitrary: TieArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+) => {
+  const name = tieArbitraryNames.get(arbitrary)
+  if (name === undefined) {
+    throw new Error(`Invalid state`)
+  }
+  return ts.factory.createCallExpression(
+    ts.factory.createIdentifier(`tie`),
+    undefined,
+    [literalExpression(name)],
+  )
+}
 
 const mapArbitraryExpression = (
   arbitraryExpression: ts.Expression,

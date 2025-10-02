@@ -3,6 +3,7 @@ import {
   arrayArbitrary,
   assignArbitrary,
   booleanArbitrary,
+  collectTieArbitraries,
   constantArbitrary,
   constantFromArbitrary,
   dictionaryArbitrary,
@@ -24,16 +25,49 @@ import type {
   DictionaryArbitrary,
   FuncArbitrary,
   MapStringArbitrary,
+  MutableArbitrary,
   OneofArbitrary,
   OptionArbitrary,
   RecordArbitrary,
   TemplateArbitrary,
+  TieArbitrary,
   TupleArbitrary,
 } from './arbitrary.ts'
 import { compareConstants } from './sort.ts'
 
 const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
+  const tieArbitraries = collectTieArbitraries(arbitrary)
+  const arbitraryTieArbitraries = new Map<Arbitrary, Set<TieArbitrary>>()
+  for (const tieArbitrary of tieArbitraries) {
+    let arbitraries = arbitraryTieArbitraries.get(tieArbitrary.arbitrary)
+    if (!arbitraries) {
+      arbitraries = new Set()
+      arbitraryTieArbitraries.set(tieArbitrary.arbitrary, arbitraries)
+    }
+    arbitraries.add(tieArbitrary)
+  }
+
+  return normalizeArbitraryInternal(arbitrary, arbitraryTieArbitraries)
+}
+
+const normalizeArbitraryInternal = (
+  arbitrary: Arbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary => {
+  let normalizedArbitrary: Arbitrary
   switch (arbitrary.type) {
+    case `mutable`:
+      normalizedArbitrary = normalizeMutableArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
+    case `tie`:
+      normalizedArbitrary = normalizeTieArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `never`:
     case `constant`:
     case `boolean`:
@@ -43,42 +77,123 @@ const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
     case `symbol`:
     case `object`:
     case `anything`:
-      return arbitrary
+      normalizedArbitrary = arbitrary
+      break
     case `option`:
-      return normalizeOptionArbitrary(arbitrary)
+      normalizedArbitrary = normalizeOptionArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `template`:
-      return normalizeTemplateArbitrary(arbitrary)
+      normalizedArbitrary = normalizeTemplateArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `mapString`:
-      return normalizeMapStringArbitrary(arbitrary)
+      normalizedArbitrary = normalizeMapStringArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `array`:
-      return normalizeArrayArbitrary(arbitrary)
+      normalizedArbitrary = normalizeArrayArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `tuple`:
-      return normalizeTupleArbitrary(arbitrary)
+      normalizedArbitrary = normalizeTupleArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `record`:
-      return normalizeRecordArbitrary(arbitrary)
+      normalizedArbitrary = normalizeRecordArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `dictionary`:
-      return normalizeDictionaryArbitrary(arbitrary)
+      normalizedArbitrary = normalizeDictionaryArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `func`:
-      return normalizeFuncArbitrary(arbitrary)
+      normalizedArbitrary = normalizeFuncArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `constantFrom`:
-      return normalizeConstantFromArbitrary(arbitrary)
+      normalizedArbitrary = normalizeConstantFromArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `oneof`:
-      return normalizeOneofArbitrary(arbitrary)
+      normalizedArbitrary = normalizeOneofArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `assign`:
-      return normalizeAssignArbitrary(arbitrary)
+      normalizedArbitrary = normalizeAssignArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
   }
+
+  const tieArbitrary = arbitraryTieArbitraries
+    .get(arbitrary)
+    ?.values()
+    .next().value
+  if (tieArbitrary) {
+    tieArbitrary.arbitrary = normalizedArbitrary
+    return tieArbitrary
+  }
+
+  return normalizedArbitrary
 }
 
-const normalizeOptionArbitrary = (arbitrary: OptionArbitrary): Arbitrary =>
-  normalizeArbitrary(oneofArbitrary(spreadUnionArbitraries(arbitrary)))
+const normalizeMutableArbitrary = (
+  arbitrary: MutableArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary => {
+  if (!arbitrary.value) {
+    throw new Error(`Mutable arbitrary not set`)
+  }
+
+  return normalizeArbitraryInternal(arbitrary.value, arbitraryTieArbitraries)
+}
+
+const normalizeTieArbitrary = (
+  arbitrary: TieArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
+  // Canonicalize to tie arbitraries based on their constituent.
+  arbitraryTieArbitraries.get(arbitrary.arbitrary)!.values().next().value!
+
+const normalizeOptionArbitrary = (
+  arbitrary: OptionArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
+  normalizeArbitraryInternal(
+    oneofArbitrary(spreadUnionArbitraries(arbitrary)),
+    arbitraryTieArbitraries,
+  )
 
 const normalizeTemplateArbitrary = (
   arbitrary: TemplateArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
 ): Arbitrary => {
   const flattenedSegments: (string | Arbitrary)[] = []
   for (let segment of arbitrary.segments) {
     if (typeof segment !== `string`) {
-      segment = normalizeArbitrary(segment)
+      segment = normalizeArbitraryInternal(segment, arbitraryTieArbitraries)
       switch (segment.type) {
         case `never`:
           return neverArbitrary()
@@ -95,6 +210,8 @@ const normalizeTemplateArbitrary = (
             noNaN: true,
           })
           break
+        case `mutable`:
+        case `tie`:
         case `option`:
         case `boolean`:
         case `bigInt`:
@@ -156,46 +273,74 @@ const normalizeTemplateArbitrary = (
 
 const normalizeMapStringArbitrary = (
   arbitrary: MapStringArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
 ): Arbitrary =>
   mapStringArbitrary({
-    arbitrary: normalizeArbitrary(arbitrary.arbitrary),
+    arbitrary: normalizeArbitraryInternal(
+      arbitrary.arbitrary,
+      arbitraryTieArbitraries,
+    ),
     operation: arbitrary.operation,
   })
 
-const normalizeArrayArbitrary = (arbitrary: ArrayArbitrary): Arbitrary =>
-  arrayArbitrary(normalizeArbitrary(arbitrary.items))
+const normalizeArrayArbitrary = (
+  arbitrary: ArrayArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
+  arrayArbitrary(
+    normalizeArbitraryInternal(arbitrary.items, arbitraryTieArbitraries),
+  )
 
-const normalizeTupleArbitrary = (arbitrary: TupleArbitrary): Arbitrary =>
+const normalizeTupleArbitrary = (
+  arbitrary: TupleArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
   tupleArbitrary(
     arbitrary.elements.map(({ arbitrary, rest }) => ({
-      arbitrary: normalizeArbitrary(arbitrary),
+      arbitrary: normalizeArbitraryInternal(arbitrary, arbitraryTieArbitraries),
       rest,
     })),
   )
 
-const normalizeRecordArbitrary = (arbitrary: RecordArbitrary): Arbitrary =>
+const normalizeRecordArbitrary = (
+  arbitrary: RecordArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
   recordArbitrary(
     new Map(
       Array.from(arbitrary.properties, ([name, { required, arbitrary }]) => [
         name,
-        { required, arbitrary: normalizeArbitrary(arbitrary) },
+        {
+          required,
+          arbitrary: normalizeArbitraryInternal(
+            arbitrary,
+            arbitraryTieArbitraries,
+          ),
+        },
       ]),
     ),
   )
 
 const normalizeDictionaryArbitrary = (
   arbitrary: DictionaryArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
 ): Arbitrary =>
   dictionaryArbitrary({
-    key: normalizeArbitrary(arbitrary.key),
-    value: normalizeArbitrary(arbitrary.value),
+    key: normalizeArbitraryInternal(arbitrary.key, arbitraryTieArbitraries),
+    value: normalizeArbitraryInternal(arbitrary.value, arbitraryTieArbitraries),
   })
 
-const normalizeFuncArbitrary = (arbitrary: FuncArbitrary): Arbitrary =>
-  funcArbitrary(normalizeArbitrary(arbitrary.result))
+const normalizeFuncArbitrary = (
+  arbitrary: FuncArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
+  funcArbitrary(
+    normalizeArbitraryInternal(arbitrary.result, arbitraryTieArbitraries),
+  )
 
 const normalizeConstantFromArbitrary = (
   arbitrary: ConstantFromArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
 ): Arbitrary => {
   const constants = new SameValueSet(
     arbitrary.constants.toSorted(compareConstants),
@@ -209,7 +354,10 @@ const normalizeConstantFromArbitrary = (
       if (constants.has(undefined) && !constants.has(null)) {
         constants.delete(undefined)
         return optionArbitrary({
-          arbitrary: normalizeArbitrary(constantFromArbitrary([...constants])),
+          arbitrary: normalizeArbitraryInternal(
+            constantFromArbitrary([...constants]),
+            arbitraryTieArbitraries,
+          ),
           nil: undefined,
         })
       }
@@ -217,7 +365,10 @@ const normalizeConstantFromArbitrary = (
       if (constants.has(null) && !constants.has(undefined)) {
         constants.delete(null)
         return optionArbitrary({
-          arbitrary: normalizeArbitrary(constantFromArbitrary([...constants])),
+          arbitrary: normalizeArbitraryInternal(
+            constantFromArbitrary([...constants]),
+            arbitraryTieArbitraries,
+          ),
           nil: null,
         })
       }
@@ -227,11 +378,12 @@ const normalizeConstantFromArbitrary = (
         constants.delete(true)
         return constants.size === 0
           ? booleanArbitrary()
-          : normalizeArbitrary(
+          : normalizeArbitraryInternal(
               oneofArbitrary([
                 booleanArbitrary(),
                 constantFromArbitrary([...constants]),
               ]),
+              arbitraryTieArbitraries,
             )
       }
 
@@ -239,10 +391,15 @@ const normalizeConstantFromArbitrary = (
   }
 }
 
-const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
+const normalizeOneofArbitrary = (
+  arbitrary: OneofArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary => {
   const variants = new Set<Arbitrary>(
     arbitrary.variants.flatMap(variant =>
-      spreadUnionArbitraries(normalizeArbitrary(variant)),
+      spreadUnionArbitraries(
+        normalizeArbitraryInternal(variant, arbitraryTieArbitraries),
+      ),
     ),
   )
 
@@ -288,7 +445,10 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
   if (constants.size === 1) {
     variants.add(constantArbitrary(constants.values().next().value))
   } else if (constants.size > 1) {
-    const arbitrary = normalizeArbitrary(constantFromArbitrary([...constants]))
+    const arbitrary = normalizeArbitraryInternal(
+      constantFromArbitrary([...constants]),
+      arbitraryTieArbitraries,
+    )
     if (variants.size === 0) {
       return arbitrary
     }
@@ -297,13 +457,19 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
 
   if (variants.delete(undefinedConstant)) {
     return optionArbitrary({
-      arbitrary: normalizeArbitrary(oneofArbitrary([...variants])),
+      arbitrary: normalizeArbitraryInternal(
+        oneofArbitrary([...variants]),
+        arbitraryTieArbitraries,
+      ),
       nil: undefined,
     })
   }
   if (variants.delete(nullConstant)) {
     return optionArbitrary({
-      arbitrary: normalizeArbitrary(oneofArbitrary([...variants])),
+      arbitrary: normalizeArbitraryInternal(
+        oneofArbitrary([...variants]),
+        arbitraryTieArbitraries,
+      ),
       nil: null,
     })
   }
@@ -313,6 +479,8 @@ const normalizeOneofArbitrary = (arbitrary: OneofArbitrary): Arbitrary => {
 
 const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
   switch (arbitrary.type) {
+    case `mutable`:
+    case `tie`:
     case `constant`:
     case `boolean`:
     case `double`:
@@ -344,10 +512,16 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
   }
 }
 
-const normalizeAssignArbitrary = (arbitrary: AssignArbitrary): Arbitrary => {
+const normalizeAssignArbitrary = (
+  arbitrary: AssignArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary => {
   const normalizedArbitraries = arbitrary.arbitraries
     .flatMap(arbitrary => {
-      const normalizedArbitrary = normalizeArbitrary(arbitrary)
+      const normalizedArbitrary = normalizeArbitraryInternal(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
       return normalizedArbitrary.type === `assign`
         ? normalizedArbitrary.arbitraries
         : [normalizedArbitrary]

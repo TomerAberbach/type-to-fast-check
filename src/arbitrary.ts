@@ -2,6 +2,8 @@ import type * as fc from 'fast-check'
 import keyalesce from 'keyalesce'
 
 export type Arbitrary =
+  | MutableArbitrary
+  | TieArbitrary
   | NeverArbitrary
   | ConstantArbitrary
   | OptionArbitrary
@@ -22,6 +24,28 @@ export type Arbitrary =
   | AssignArbitrary
   | MapStringArbitrary
   | AnythingArbitrary
+
+export type MutableArbitrary = {
+  type: `mutable`
+  value: Arbitrary | null
+}
+
+export const mutableArbitrary = (
+  value: MutableArbitrary[`value`],
+): MutableArbitrary =>
+  // This is not memoized because each `tie` arbitrary is different.
+  ({ type: `mutable`, value })
+
+export type TieArbitrary = {
+  type: `tie`
+  arbitrary: Arbitrary
+}
+
+export const tieArbitrary = (
+  arbitrary: TieArbitrary[`arbitrary`],
+): TieArbitrary =>
+  // This is not memoized because each `tie` arbitrary is different.
+  ({ type: `tie`, arbitrary })
 
 export type NeverArbitrary = {
   type: `never`
@@ -208,6 +232,9 @@ const memoize = <A extends Arbitrary>(arbitrary: A): A => {
 
 const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
   switch (arbitrary.type) {
+    case `mutable`:
+    case `tie`:
+      throw new Error(`Unsupported type`)
     case `never`:
     case `boolean`:
     case `bigInt`:
@@ -262,3 +289,80 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
 
 const arbitraryCache = new Map<ArbitraryKey, Arbitrary>()
 type ArbitraryKey = ReturnType<typeof keyalesce>
+
+export const collectTieArbitraries = (
+  arbitrary: Arbitrary,
+): Set<TieArbitrary> => {
+  const tieArbitraries = new Set<TieArbitrary>()
+  const visitArbitrary = (arbitrary: Arbitrary) => {
+    switch (arbitrary.type) {
+      case `mutable`:
+        if (arbitrary.value) {
+          visitArbitrary(arbitrary.value)
+        }
+        break
+      case `never`:
+      case `constant`:
+      case `boolean`:
+      case `double`:
+      case `bigInt`:
+      case `string`:
+      case `symbol`:
+      case `object`:
+      case `constantFrom`:
+      case `anything`:
+        break
+      case `template`:
+        for (const segment of arbitrary.segments) {
+          if (typeof segment !== `string`) {
+            visitArbitrary(segment)
+          }
+        }
+        break
+      case `mapString`:
+        visitArbitrary(arbitrary.arbitrary)
+        break
+      case `array`:
+        visitArbitrary(arbitrary.items)
+        break
+      case `tuple`:
+        for (const element of arbitrary.elements) {
+          visitArbitrary(element.arbitrary)
+        }
+        break
+      case `record`:
+        for (const property of arbitrary.properties.values()) {
+          visitArbitrary(property.arbitrary)
+        }
+        break
+      case `dictionary`:
+        visitArbitrary(arbitrary.key)
+        visitArbitrary(arbitrary.value)
+        break
+      case `func`:
+        visitArbitrary(arbitrary.result)
+        break
+      case `option`:
+        visitArbitrary(arbitrary.arbitrary)
+        break
+      case `oneof`:
+        for (const variant of arbitrary.variants) {
+          visitArbitrary(variant)
+        }
+        break
+      case `assign`:
+        for (const arb of arbitrary.arbitraries) {
+          visitArbitrary(arb)
+        }
+        break
+      case `tie`:
+        if (!tieArbitraries.has(arbitrary)) {
+          tieArbitraries.add(arbitrary)
+          visitArbitrary(arbitrary.arbitrary)
+        }
+        break
+    }
+  }
+  visitArbitrary(arbitrary)
+  return tieArbitraries
+}

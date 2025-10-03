@@ -33,7 +33,7 @@ export type MutableArbitrary = {
 export const mutableArbitrary = (
   value: MutableArbitrary[`value`],
 ): MutableArbitrary =>
-  // This is not memoized because each `tie` arbitrary is different.
+  // This is not memoized because each `mutable` arbitrary is different.
   ({ type: `mutable`, value })
 
 export type TieArbitrary = {

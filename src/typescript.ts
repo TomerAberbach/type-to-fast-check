@@ -115,7 +115,9 @@ class TypeScriptCompiler {
       return sourceFile
     }
 
-    const fileName = `test${this.#sourceFilesByName.size}.ts`
+    const fileName = `${
+      import.meta.dirname
+    }/fixtures/test${this.#sourceFilesByName.size}.ts`
     sourceFile = ts.createSourceFile(
       fileName,
       content,

@@ -26,6 +26,11 @@ const test = (testCase: {
   testCases.push(testCase)
 }
 
+;(() => {
+  const typeToArb = <T>(value: T) => value
+  const _notTransformed = typeToArb('Hello World!')
+})()
+
 // Never
 test({ arb: typeToArb<never>(), typecheck: false })
 

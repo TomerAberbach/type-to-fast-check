@@ -10,7 +10,7 @@ import * as ttfc from 'fast-check'
 /* eslint-disable typescript/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 import type * as fc from 'fast-check'
-declare const typeToArb: <T>() => fc.Arbitrary<T>
+import typeToArb from 'type-to-fast-check'
 type TestCase<T = unknown> = {
   arb: fc.Arbitrary<T>
   typecheck?: boolean

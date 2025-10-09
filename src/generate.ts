@@ -181,7 +181,7 @@ const generateReferenceArbitrary = (
   typeChecker: ts.TypeChecker,
 ): Arbitrary | undefined => {
   const isBuiltin = Boolean(
-    // eslint-disable-next-line typescript/no-unnecessary-condition
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     type.symbol?.declarations?.some(
       declaration => declaration.getSourceFile().hasNoDefaultLib,
     ),

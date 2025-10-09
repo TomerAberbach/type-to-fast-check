@@ -1,13 +1,13 @@
 import * as ttfc from 'fast-check'
-/* eslint-disable typescript/consistent-indexed-object-style */
-/* eslint-disable typescript/prefer-function-type */
-/* eslint-disable typescript/method-signature-style */
-/* eslint-disable typescript/consistent-type-definitions */
-/* eslint-disable typescript/no-unsafe-function-type */
-/* eslint-disable typescript/array-type */
-/* eslint-disable typescript/no-unnecessary-template-expression */
-/* eslint-disable typescript/no-invalid-void-type */
-/* eslint-disable typescript/no-redundant-type-constituents */
+/* eslint-disable @typescript-eslint/consistent-indexed-object-style */
+/* eslint-disable @typescript-eslint/prefer-function-type */
+/* eslint-disable @typescript-eslint/method-signature-style */
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
+/* eslint-disable @typescript-eslint/array-type */
+/* eslint-disable @typescript-eslint/no-unnecessary-template-expression */
+/* eslint-disable @typescript-eslint/no-invalid-void-type */
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable stylistic/quotes */
 import type * as fc from 'fast-check'
 import typeToArb from 'type-to-fast-check'

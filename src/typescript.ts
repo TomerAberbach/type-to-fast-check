@@ -104,7 +104,7 @@ class TypeScriptCompiler {
         .filter(
           diagnostic => diagnostic.category === ts.DiagnosticCategory.Error,
         )
-        // eslint-disable-next-line typescript/no-base-to-string
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         .map(diagnostic => String(diagnostic.messageText)),
     }
   }

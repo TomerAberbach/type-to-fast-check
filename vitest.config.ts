@@ -1,4 +1,4 @@
-import { defaultExclude, defineConfig } from 'vitest/config'
+import { defaultExclude, defaultInclude, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -7,6 +7,7 @@ export default defineConfig({
     coverage: {
       include: [`src`],
     },
+    include: defaultInclude.map(include => `src/${include}`),
     exclude: [...defaultExclude, `.rollup.cache`],
     watchTriggerPatterns: [
       {

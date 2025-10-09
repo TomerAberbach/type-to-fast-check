@@ -4,14 +4,16 @@
   "scripts": {
     "prepare": "ts-patch install -s",
     "build": "tsc",
-    "play": "pnpm run build && node ./dist/index.js"
+    "play": "pnpm run build && node ./dist/index.js",
+    "test": "vitest"
   },
   "dependencies": {
+    "@fast-check/vitest": "^0.2.2",
+    "@rollup/plugin-typescript": "^12.1.4",
     "fast-check": "^4.3.0",
-    "type-to-fast-check": "link:.."
-  },
-  "devDependencies": {
     "ts-patch": "^3.3.0",
-    "tsx": "^4.20.6"
+    "type-to-fast-check": "link:..",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

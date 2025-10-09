@@ -8,5 +8,5 @@
     "lib": ["esnext", "dom"],
     "plugins": [{ "transform": "type-to-fast-check/transformer" }]
   },
-  "include": ["./index.ts"]
+  "include": ["./*.ts"]
 }

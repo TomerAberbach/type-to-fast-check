@@ -1,5 +1,5 @@
-/* eslint-disable typescript/no-empty-object-type */
-/* eslint-disable typescript/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 import type CustomMatchers from 'jest-extended'
 import 'vitest'
 

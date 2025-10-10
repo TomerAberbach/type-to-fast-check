@@ -327,7 +327,6 @@ test({
   arb:
     // [(string | undefined)?, (number | undefined)?, (boolean | undefined)?]
     ttfc.oneof(
-      ttfc.tuple(),
       ttfc.tuple(ttfc.option(ttfc.string(), { nil: undefined })),
       ttfc.tuple(
         ttfc.option(ttfc.string(), { nil: undefined }),
@@ -338,6 +337,7 @@ test({
         ttfc.option(ttfc.double(), { nil: undefined }),
         ttfc.option(ttfc.boolean(), { nil: undefined }),
       ),
+      ttfc.constant([]),
     ),
 })
 test({
@@ -410,6 +410,28 @@ test({
       ttfc.array(ttfc.boolean()),
     ),
 })
+test({
+  arb:
+    // ["a", "b", string]
+    ttfc.tuple(ttfc.constant('a'), ttfc.constant('b'), ttfc.string()),
+})
+test({
+  arb:
+    // ["a", "b", "c"]
+    ttfc.constant(['a', 'b', 'c']),
+})
+test({
+  arb:
+    // ["a", ...string[], "c"]
+    ttfc
+      .tuple(ttfc.constant('a'), ttfc.array(ttfc.string()), ttfc.constant('c'))
+      .map(value => [value[0], ...value[1], value[2]]),
+})
+test({
+  arb:
+    // ["a", "a", "b", "c", "c"]
+    ttfc.constant(['a', 'a', 'b', 'c', 'c']),
+})
 // Object
 test({
   arb:
@@ -475,6 +497,27 @@ test({
   arb:
     // Omit<{ a: string; b?: number | undefined; c: boolean; }, "a" | "c">
     ttfc.record({ b: ttfc.option(ttfc.double(), { nil: undefined }) }),
+})
+test({
+  arb:
+    // { a: "a"; b: number; }
+    ttfc.record({ a: ttfc.constant('a'), b: ttfc.double() }),
+})
+test({
+  arb:
+    // { a?: "a" | undefined; b: 2; }
+    ttfc.record(
+      {
+        a: ttfc.option(ttfc.constant('a'), { nil: undefined }),
+        b: ttfc.constant(2),
+      },
+      { requiredKeys: ['b'] },
+    ),
+})
+test({
+  arb:
+    // { a: "a"; b: 2; }
+    ttfc.constant({ a: 'a', b: 2 }),
 })
 test({
   arb:
@@ -847,17 +890,17 @@ type IsBoolean<T> = {
 test({
   arb:
     // IsBoolean<false>
-    ttfc.record({ answer: ttfc.constant('yes') }),
+    ttfc.constant({ answer: 'yes' }),
 })
 test({
   arb:
     // IsBoolean<true>
-    ttfc.record({ answer: ttfc.constant('yes') }),
+    ttfc.constant({ answer: 'yes' }),
 })
 test({
   arb:
     // IsBoolean<"true">
-    ttfc.record({ answer: ttfc.constant('no') }),
+    ttfc.constant({ answer: 'no' }),
 })
 // Mapped
 type O = {

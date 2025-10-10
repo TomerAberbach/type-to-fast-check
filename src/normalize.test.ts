@@ -94,9 +94,15 @@ const arbitraryArb = fc.letrec<
   array: tie(`arbitrary`).map(arrayArbitrary),
   tuple: fc
     .array(
-      fc.record(
-        { arbitrary: tie(`arbitrary`), rest: fc.boolean() },
-        { noNullPrototype: true },
+      fc.oneof(
+        fc.record(
+          { arbitrary: tie(`arbitrary`), rest: fc.constant(false) },
+          { noNullPrototype: true },
+        ),
+        fc.record(
+          { arbitrary: tie(`array`), rest: fc.constant(true) },
+          { noNullPrototype: true },
+        ),
       ),
       { minLength: 1, depthIdentifier },
     )

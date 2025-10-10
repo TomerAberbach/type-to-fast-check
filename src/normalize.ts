@@ -294,32 +294,56 @@ const normalizeArrayArbitrary = (
 const normalizeTupleArbitrary = (
   arbitrary: TupleArbitrary,
   arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
-): Arbitrary =>
-  tupleArbitrary(
-    arbitrary.elements.map(({ arbitrary, rest }) => ({
-      arbitrary: normalizeArbitraryInternal(arbitrary, arbitraryTieArbitraries),
-      rest,
-    })),
-  )
+): Arbitrary => {
+  const normalizedElements = arbitrary.elements.map(({ arbitrary, rest }) => ({
+    arbitrary: normalizeArbitraryInternal(arbitrary, arbitraryTieArbitraries),
+    rest,
+  }))
+
+  const constantElements: unknown[] = []
+  for (const { arbitrary, rest } of normalizedElements) {
+    if (arbitrary.type === `constant`) {
+      if (rest) {
+        constantElements.push(...(arbitrary.value as unknown[]))
+      } else {
+        constantElements.push(arbitrary.value)
+      }
+    } else {
+      return tupleArbitrary(normalizedElements)
+    }
+  }
+
+  return constantArbitrary(constantElements)
+}
 
 const normalizeRecordArbitrary = (
   arbitrary: RecordArbitrary,
   arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
-): Arbitrary =>
-  recordArbitrary(
-    new Map(
-      Array.from(arbitrary.properties, ([name, { required, arbitrary }]) => [
-        name,
-        {
-          required,
-          arbitrary: normalizeArbitraryInternal(
-            arbitrary,
-            arbitraryTieArbitraries,
-          ),
-        },
-      ]),
-    ),
+): Arbitrary => {
+  const normalizedProperties = new Map(
+    Array.from(arbitrary.properties, ([name, { required, arbitrary }]) => [
+      name,
+      {
+        required,
+        arbitrary: normalizeArbitraryInternal(
+          arbitrary,
+          arbitraryTieArbitraries,
+        ),
+      },
+    ]),
   )
+
+  const constantProperties = Object.create(null) as Record<PropertyKey, unknown>
+  for (const [name, { required, arbitrary }] of normalizedProperties) {
+    const isConstant = required && arbitrary.type === `constant`
+    if (isConstant) {
+      constantProperties[name] = arbitrary.value
+    } else {
+      return recordArbitrary(normalizedProperties)
+    }
+  }
+  return constantArbitrary(constantProperties)
+}
 
 const normalizeDictionaryArbitrary = (
   arbitrary: DictionaryArbitrary,
@@ -528,10 +552,7 @@ const normalizeAssignArbitrary = (
     })
     // Exclude trailing empty objects because they are no-ops.
     .filter(
-      (arbitrary, index) =>
-        index === 0 ||
-        arbitrary.type !== `record` ||
-        arbitrary.properties.size > 0,
+      (arbitrary, index) => index === 0 || !isEmptyObjectArbitrary(arbitrary),
     )
   switch (normalizedArbitraries.length) {
     case 0:
@@ -542,5 +563,11 @@ const normalizeAssignArbitrary = (
       return assignArbitrary(normalizedArbitraries)
   }
 }
+
+const isEmptyObjectArbitrary = (arbitrary: Arbitrary): boolean =>
+  arbitrary.type === `constant` &&
+  typeof arbitrary.value === `object` &&
+  arbitrary.value !== null &&
+  Object.keys(arbitrary.value).length === 0
 
 export default normalizeArbitrary

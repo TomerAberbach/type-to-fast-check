@@ -1,5 +1,6 @@
 import * as pkg from 'empathic/package'
 import ts from 'typescript'
+import { withAddDiagnostic } from './diagnostics.ts'
 import { addFastCheckImport } from './fast-check.ts'
 import generateArbitrary from './generate.ts'
 import normalizeArbitrary from './normalize.ts'
@@ -7,18 +8,29 @@ import reifyArbitraryInternal from './reify.ts'
 
 const createTransformer = (
   program: ts.Program,
+  _config: ts.PluginConfig,
+  extras: ts.TransformerExtras,
 ): ts.TransformerFactory<ts.SourceFile> => {
   const typeChecker = program.getTypeChecker()
   return (context: ts.TransformationContext): ts.Transformer<ts.SourceFile> =>
-    (sourceFile: ts.SourceFile): ts.SourceFile => {
-      let newSourceFile = ts.visitNode(sourceFile, node =>
-        visitTypeToArbCallExpressions(node, typeChecker, context),
-      ) as ts.SourceFile
-      if (newSourceFile !== sourceFile) {
-        newSourceFile = addFastCheckImport(newSourceFile)
-      }
-      return newSourceFile
-    }
+    (sourceFile: ts.SourceFile): ts.SourceFile =>
+      withAddDiagnostic(extras.addDiagnostic.bind(extras), () =>
+        transformSourceFile(sourceFile, typeChecker, context),
+      )
+}
+
+const transformSourceFile = (
+  sourceFile: ts.SourceFile,
+  typeChecker: ts.TypeChecker,
+  context: ts.TransformationContext,
+): ts.SourceFile => {
+  let newSourceFile = ts.visitNode(sourceFile, node =>
+    visitTypeToArbCallExpressions(node, typeChecker, context),
+  ) as ts.SourceFile
+  if (newSourceFile !== sourceFile) {
+    newSourceFile = addFastCheckImport(newSourceFile)
+  }
+  return newSourceFile
 }
 
 const visitTypeToArbCallExpressions = (
@@ -62,7 +74,11 @@ const visitTypeToArbCallExpression = (
   }
 
   const type = typeArguments[0]!
-  const arbitrary = generateArbitrary(type, typeChecker)
+  const arbitrary = generateArbitrary(
+    type,
+    node.typeArguments![0]!,
+    typeChecker,
+  )
   const normalizedArbitrary = normalizeArbitrary(arbitrary)
   return ts.addSyntheticLeadingComment(
     reifyArbitraryInternal(normalizedArbitrary),

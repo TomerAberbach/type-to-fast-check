@@ -26,9 +26,11 @@ import type {
   MapStringArbitrary,
   MutableArbitrary,
 } from './arbitrary.ts'
+import { addDiagnostic, NEW_ISSUE_LINK } from './diagnostics.ts'
 
 const generateArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
   let arbitrary = unsetMutableArbitraries.get(type)
@@ -42,11 +44,19 @@ const generateArbitrary = (
 
   for (const [flag, generateArbitrary] of typeGenerators) {
     if (type.flags & flag) {
-      arbitrary.value = generateArbitrary(type, typeChecker)
+      arbitrary.value = generateArbitrary(type, node, typeChecker)
       break
     }
   }
-  arbitrary.value ??= anythingArbitrary()
+
+  if (!arbitrary.value) {
+    addDiagnostic(
+      node,
+      ts.DiagnosticCategory.Error,
+      `Unknown type. [File an issue](${NEW_ISSUE_LINK}).`,
+    )
+    arbitrary.value = anythingArbitrary()
+  }
 
   unsetMutableArbitraries.delete(type)
 
@@ -67,6 +77,7 @@ const generateBooleanArbitrary = () => booleanArbitrary()
 
 const generateBooleanLiteralArbitrary = (
   type: ts.Type,
+  _node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => constantArbitrary(typeChecker.typeToString(type) === `true`)
 
@@ -91,6 +102,7 @@ const generateStringLiteralArbitrary = (type: ts.Type) =>
 
 const generateTemplateLiteralArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => {
   const { texts, types } = type as ts.TemplateLiteralType
@@ -103,49 +115,78 @@ const generateTemplateLiteralArbitrary = (
       continue
     }
 
-    template.push(generateArbitrary(types[index]!, typeChecker))
+    template.push(
+      generateArbitrary(
+        types[index]!,
+        getTemplateLiteralSpanNode(node, index) ?? node,
+        typeChecker,
+      ),
+    )
   }
 
   return templateArbitrary(template)
 }
 
+const getTemplateLiteralSpanNode = (
+  node: ts.TypeNode,
+  index: number,
+): ts.TypeNode | null =>
+  ts.isTemplateLiteralTypeNode(node)
+    ? (node.templateSpans[index]?.type ?? null)
+    : null
+
 const generateStringMappingArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => {
   const stringMappingType = type as ts.StringMappingType
-  const arbitrary = generateArbitrary(stringMappingType.type, typeChecker)
+  const stringNode = ts.isTypeReferenceNode(node)
+    ? (node.typeArguments?.[0] ?? node)
+    : node
+  const arbitrary = generateArbitrary(
+    stringMappingType.type,
+    stringNode,
+    typeChecker,
+  )
 
-  let operation: MapStringArbitrary[`operation`]
-  switch (stringMappingType.symbol.name) {
-    case `Uppercase`:
-      operation = `uppercase`
-      break
-    case `Lowercase`:
-      operation = `lowercase`
-      break
-    case `Capitalize`:
-      operation = `capitalize`
-      break
-    case `Uncapitalize`:
-      operation = `uncapitalize`
-      break
-    default:
-      return arbitrary
+  const operation = stringMappingOperations.get(stringMappingType.symbol.name)
+  if (!operation) {
+    addDiagnostic(
+      node,
+      ts.DiagnosticCategory.Error,
+      `Unknown string mapping type. [File an issue](${NEW_ISSUE_LINK}).`,
+    )
+    return arbitrary
   }
 
   return mapStringArbitrary({ arbitrary, operation })
 }
 
+const stringMappingOperations: ReadonlyMap<
+  string,
+  MapStringArbitrary[`operation`]
+> = new Map([
+  [`Uppercase`, `uppercase`],
+  [`Lowercase`, `lowercase`],
+  [`Capitalize`, `capitalize`],
+  [`Uncapitalize`, `uncapitalize`],
+])
+
 const generateSymbolArbitrary = () => symbolArbitrary()
 
 const generateObjectArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
   const objectType = type as ts.ObjectType
 
-  const referenceArbitrary = generateReferenceArbitrary(objectType, typeChecker)
+  const referenceArbitrary = generateReferenceArbitrary(
+    objectType,
+    node,
+    typeChecker,
+  )
   if (referenceArbitrary) {
     return referenceArbitrary
   }
@@ -156,14 +197,14 @@ const generateObjectArbitrary = (
   )
   const functionArbitrary =
     callSignatures.length > 0
-      ? generateFunctionArbitrary(type, typeChecker)
+      ? generateFunctionArbitrary(type, node, typeChecker)
       : undefined
-  const indexArbitrary = generateIndexArbitrary(objectType, typeChecker)
+  const indexArbitrary = generateIndexArbitrary(objectType, node, typeChecker)
 
   let objArbitrary: Arbitrary | undefined
   for (const [flag, generateArbitrary] of objectTypeGenerators) {
     if (matchesObjectFlag(objectType, flag)) {
-      objArbitrary = generateArbitrary(objectType, typeChecker)
+      objArbitrary = generateArbitrary(objectType, node, typeChecker)
       break
     }
   }
@@ -178,6 +219,7 @@ const generateObjectArbitrary = (
 
 const generateReferenceArbitrary = (
   type: ts.ObjectType,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary | undefined => {
   const isBuiltin = Boolean(
@@ -191,16 +233,24 @@ const generateReferenceArbitrary = (
     : undefined
 
   const typeReference = type as ts.TypeReference
-  return generateBuiltinArbitrary?.(typeReference, typeChecker)
+  return generateBuiltinArbitrary?.(typeReference, node, typeChecker)
 }
 
 const generateFunctionArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary => {
   const resultArbitraries = typeChecker
     .getSignaturesOfType(type, ts.SignatureKind.Call)
-    .map(signature => generateArbitrary(signature.getReturnType(), typeChecker))
+    .map(signature => {
+      const returnTypeNode = ts.isFunctionTypeNode(node) ? node.type : node
+      return generateArbitrary(
+        signature.getReturnType(),
+        returnTypeNode,
+        typeChecker,
+      )
+    })
   return funcArbitrary(
     resultArbitraries.length === 0
       ? anythingArbitrary()
@@ -210,6 +260,7 @@ const generateFunctionArbitrary = (
 
 const generateIndexArbitrary = (
   type: ts.ObjectType,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary | undefined => {
   if (matchesObjectFlag(type, ts.ObjectFlags.Tuple)) {
@@ -222,9 +273,18 @@ const generateIndexArbitrary = (
   }
 
   const valueToKeyArbitraries = new Map<Arbitrary, Set<Arbitrary>>()
-  for (const { keyType, type } of indexInfos) {
-    const keyArbitrary = generateArbitrary(keyType, typeChecker)
-    const valueArbitrary = generateArbitrary(type, typeChecker)
+  for (const indexInfo of indexInfos) {
+    const { keyNode, valueNode } = getIndexSignatureNodes(node, indexInfo)
+    const keyArbitrary = generateArbitrary(
+      indexInfo.keyType,
+      keyNode,
+      typeChecker,
+    )
+    const valueArbitrary = generateArbitrary(
+      indexInfo.type,
+      valueNode,
+      typeChecker,
+    )
 
     let keyArbitraries = valueToKeyArbitraries.get(valueArbitrary)
     if (!keyArbitraries) {
@@ -254,8 +314,21 @@ const matchesObjectFlag = (
         (type as ts.TypeReference).target.objectFlags & flag),
   )
 
+const getIndexSignatureNodes = (
+  node: ts.TypeNode,
+  indexInfo: ts.IndexInfo,
+): { keyNode: ts.TypeNode; valueNode: ts.TypeNode } => {
+  if (!indexInfo.declaration) {
+    return { keyNode: node, valueNode: node }
+  }
+
+  const { parameters, type } = indexInfo.declaration
+  return { keyNode: parameters[0]?.type ?? node, valueNode: type }
+}
+
 const generateObjectLiteralArbitrary = (
   type: ts.ObjectType,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ): Arbitrary =>
   recordArbitrary(
@@ -264,6 +337,7 @@ const generateObjectLiteralArbitrary = (
         const required = !(symbol.flags & ts.SymbolFlags.Optional)
         const arbitrary = generateArbitrary(
           typeChecker.getTypeOfSymbol(symbol),
+          getPropertyNode(node, symbol.name) ?? node,
           typeChecker,
         )
         return [symbol.name, { required, arbitrary }]
@@ -271,15 +345,43 @@ const generateObjectLiteralArbitrary = (
     ),
   )
 
+const getPropertyNode = (
+  node: ts.TypeNode,
+  name: string,
+): ts.TypeNode | null => {
+  if (!ts.isTypeLiteralNode(node)) {
+    return null
+  }
+
+  for (const member of node.members) {
+    if (!ts.isPropertySignature(member)) {
+      continue
+    }
+    if (
+      (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) &&
+      member.name.text === name
+    ) {
+      return member.type ?? null
+    }
+  }
+
+  return null
+}
+
 const generateTupleArbitrary = (
   type: ts.ObjectType,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => {
   const referenceType = type as ts.TypeReference
   const tupleType = referenceType.target as ts.TupleType
   const arbitrary = tupleArbitrary(
     typeChecker.getTypeArguments(referenceType).map((elementType, index) => {
-      const arbitrary = generateArbitrary(elementType, typeChecker)
+      const arbitrary = generateArbitrary(
+        elementType,
+        getTupleElementNode(node, index) ?? node,
+        typeChecker,
+      )
       return tupleType.elementFlags[index]! & ts.ElementFlags.Rest
         ? { arbitrary: arrayArbitrary(arbitrary), rest: true }
         : { arbitrary, rest: false }
@@ -306,20 +408,59 @@ const generateTupleArbitrary = (
   return oneofArbitrary(variantArbitraries)
 }
 
+const getTupleElementNode = (
+  node: ts.TypeNode,
+  index: number,
+): ts.TypeNode | null => {
+  if (!ts.isTupleTypeNode(node)) {
+    return null
+  }
+
+  const element = node.elements[index]
+  if (!element) {
+    return null
+  }
+
+  return ts.isNamedTupleMember(element) ? element.type : element
+}
+
 const generateArrayArbitrary = (
   type: ts.TypeReference,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => {
   const [itemType = typeChecker.getUnknownType()] = type.typeArguments ?? []
-  return arrayArbitrary(generateArbitrary(itemType, typeChecker))
+  return arrayArbitrary(
+    generateArbitrary(itemType, getArrayItemNode(node) ?? node, typeChecker),
+  )
+}
+
+const getArrayItemNode = (node: ts.TypeNode): ts.TypeNode | null => {
+  if (ts.isArrayTypeNode(node)) {
+    return node.elementType
+  }
+
+  if (ts.isTypeReferenceNode(node)) {
+    return node.typeArguments?.[0] ?? null
+  }
+
+  return null
 }
 
 const generateNonPrimitiveArbitrary = () => objectArbitrary()
 
-const generateUnionArbitrary = (type: ts.Type, typeChecker: ts.TypeChecker) =>
+const generateUnionArbitrary = (
+  type: ts.Type,
+  node: ts.TypeNode,
+  typeChecker: ts.TypeChecker,
+) =>
   oneofArbitrary(
-    (type as ts.UnionType).types.map(type =>
-      generateArbitrary(type, typeChecker),
+    (type as ts.UnionType).types.map((memberType, index) =>
+      generateArbitrary(
+        memberType,
+        ts.isUnionTypeNode(node) ? (node.types[index] ?? node) : node,
+        typeChecker,
+      ),
     ),
   )
 
@@ -329,18 +470,36 @@ const generateAnyArbitrary = () => anythingArbitrary()
 
 const generateTypeParameterArbitrary = (
   type: ts.Type,
+  node: ts.TypeNode,
   typeChecker: ts.TypeChecker,
 ) => {
+  addDiagnostic(
+    node,
+    ts.DiagnosticCategory.Warning,
+    `Cannot dynamically generate type parameter arbitrary. Using its constraint type.`,
+  )
+
   const constraintType = type.getConstraint()
-  return constraintType
-    ? generateArbitrary(constraintType, typeChecker)
-    : anythingArbitrary()
+  if (!constraintType) {
+    addDiagnostic(
+      node,
+      ts.DiagnosticCategory.Warning,
+      `Type parameter has no constraint type. Using \`unknown\`.`,
+    )
+    return anythingArbitrary()
+  }
+
+  return generateArbitrary(
+    constraintType,
+    ts.isTypeParameterDeclaration(node) ? (node.constraint ?? node) : node,
+    typeChecker,
+  )
 }
 
 // TODO(#21): Support intersections.
 const typeGenerators = new Map<
   ts.TypeFlags,
-  (type: ts.Type, typeChecker: ts.TypeChecker) => Arbitrary
+  (type: ts.Type, node: ts.TypeNode, typeChecker: ts.TypeChecker) => Arbitrary
 >([
   [ts.TypeFlags.Never, generateNeverArbitrary],
   [ts.TypeFlags.Void, generateVoidArbitrary],
@@ -368,7 +527,11 @@ const typeGenerators = new Map<
 
 const objectTypeGenerators = new Map<
   ts.ObjectFlags,
-  (type: ts.ObjectType, typeChecker: ts.TypeChecker) => Arbitrary
+  (
+    type: ts.ObjectType,
+    node: ts.TypeNode,
+    typeChecker: ts.TypeChecker,
+  ) => Arbitrary
 >([
   [ts.ObjectFlags.Anonymous, generateObjectLiteralArbitrary],
   [ts.ObjectFlags.Interface, generateObjectLiteralArbitrary],
@@ -378,7 +541,11 @@ const objectTypeGenerators = new Map<
 
 const builtinTypeGenerators = new Map<
   string,
-  (type: ts.TypeReference, typeChecker: ts.TypeChecker) => Arbitrary
+  (
+    type: ts.TypeReference,
+    node: ts.TypeNode,
+    typeChecker: ts.TypeChecker,
+  ) => Arbitrary
 >([
   [`Array`, generateArrayArbitrary],
   [`ReadonlyArray`, generateArrayArbitrary],

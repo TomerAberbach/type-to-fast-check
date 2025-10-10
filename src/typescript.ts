@@ -52,7 +52,7 @@ class TypeScriptCompiler {
   ): Promise<{
     transformedTsCode: string
     jsCode: string
-    errorDiagnostics: string[]
+    diagnostics: ts.Diagnostic[]
   }> {
     const sourceFile = this.#createSourceFile(tsCode)
 
@@ -61,16 +61,23 @@ class TypeScriptCompiler {
       compilerOptions,
       this.#compilerHost,
     )
-    const errorDiagnostics: ts.Diagnostic[] = []
+    const diagnostics: ts.Diagnostic[] = []
 
     let transformedTsCode: string
     if (transform) {
+      const transformerExtras: ts.TransformerExtras = {
+        ts,
+        library: `typescript`,
+        addDiagnostic: diagnostic => diagnostics.push(diagnostic),
+        removeDiagnostic: index => diagnostics.splice(index, 1),
+        diagnostics,
+      }
       const transformResult = ts.transform(
         sourceFile,
-        [createTransformer(program)],
+        [createTransformer(program, {}, transformerExtras)],
         compilerOptions,
       )
-      errorDiagnostics.push(...(transformResult.diagnostics ?? []))
+      diagnostics.push(...(transformResult.diagnostics ?? []))
       try {
         transformedTsCode = ts
           .createPrinter()
@@ -91,7 +98,7 @@ class TypeScriptCompiler {
       compilerOptions,
     })
 
-    errorDiagnostics.push(
+    diagnostics.push(
       ...this.#getDiagnostics(program, sourceFile),
       ...program.getGlobalDiagnostics(),
       ...(transpileResult.diagnostics ?? []),
@@ -100,12 +107,7 @@ class TypeScriptCompiler {
     return {
       transformedTsCode,
       jsCode: transpileResult.outputText,
-      errorDiagnostics: errorDiagnostics
-        .filter(
-          diagnostic => diagnostic.category === ts.DiagnosticCategory.Error,
-        )
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        .map(diagnostic => String(diagnostic.messageText)),
+      diagnostics,
     }
   }
 
@@ -115,9 +117,7 @@ class TypeScriptCompiler {
       return sourceFile
     }
 
-    const fileName = `${
-      import.meta.dirname
-    }/fixtures/test${this.#sourceFilesByName.size}.ts`
+    const fileName = `${fixturesPath}/test${this.#sourceFilesByName.size}.ts`
     sourceFile = ts.createSourceFile(
       fileName,
       content,
@@ -146,7 +146,6 @@ class TypeScriptCompiler {
     return diagnostics
   }
 }
-
 const compilerOptions: ts.CompilerOptions = {
   target: ts.ScriptTarget.ESNext,
   module: ts.ModuleKind.ESNext,
@@ -156,3 +155,13 @@ const compilerOptions: ts.CompilerOptions = {
 }
 
 const typeScriptCompiler = new TypeScriptCompiler()
+
+export const formatDiagnostic = (diagnostic: ts.Diagnostic): string =>
+  ts.formatDiagnostic(diagnostic, formatDiagnosticsHost).trim()
+
+const fixturesPath = `${import.meta.dirname}/fixtures`
+const formatDiagnosticsHost: ts.FormatDiagnosticsHost = {
+  getCurrentDirectory: () => fixturesPath,
+  getCanonicalFileName: fileName => fileName,
+  getNewLine: () => `\n`,
+}

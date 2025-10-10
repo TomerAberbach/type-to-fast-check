@@ -112,6 +112,10 @@ test({ arb: typeToArb<readonly [string, number, ...boolean[]]>() })
 test({ arb: typeToArb<readonly [string, ...number[], boolean]>() })
 test({ arb: typeToArb<readonly [...string[], number, boolean]>() })
 test({ arb: typeToArb<readonly [string[], number[], boolean[]]>() })
+test({ arb: typeToArb<[`a`, `b`, string]>() })
+test({ arb: typeToArb<[`a`, `b`, `c`]>() })
+test({ arb: typeToArb<[`a`, ...string[], `c`]>() })
+test({ arb: typeToArb<[`a`, ...[`a`, `b`, `c`], `c`]>() })
 
 // Object
 test({ arb: typeToArb<{ a: string; b: number }>() })
@@ -128,6 +132,9 @@ test({ arb: typeToArb<Omit<{ a: string; b?: number; c: boolean }, 'a'>>() })
 test({
   arb: typeToArb<Omit<{ a: string; b?: number; c: boolean }, 'a' | 'c'>>(),
 })
+test({ arb: typeToArb<{ a: `a`; b: number }>() })
+test({ arb: typeToArb<{ a?: `a`; b: 2 }>() })
+test({ arb: typeToArb<{ a: `a`; b: 2 }>() })
 test({ arb: typeToArb<object>() })
 
 // Interface

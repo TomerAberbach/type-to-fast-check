@@ -12,6 +12,7 @@ import {
   dictionaryArbitrary,
   doubleArbitrary,
   funcArbitrary,
+  integerArbitrary,
   mapStringArbitrary,
   neverArbitrary,
   objectArbitrary,
@@ -33,7 +34,7 @@ const arbitraryArb = fc.letrec<
     {
       [Type in Arbitrary[`type`]]: FilterByType<Arbitrary, Type>
     },
-    `mutable` | `tie`
+    `mutable` | `tie` | `meta`
   > & { arbitrary: Arbitrary }
 >(tie => ({
   arbitrary: fc.oneof(
@@ -42,6 +43,7 @@ const arbitraryArb = fc.letrec<
     tie(`constant`),
     tie(`option`),
     tie(`boolean`),
+    tie(`integer`),
     tie(`double`),
     tie(`bigInt`),
     tie(`string`),
@@ -68,6 +70,7 @@ const arbitraryArb = fc.letrec<
     })
     .map(optionArbitrary),
   boolean: fc.constant(booleanArbitrary()),
+  integer: fc.constant(integerArbitrary()),
   double: fc.constant(doubleArbitrary()),
   bigInt: fc.constant(bigIntArbitrary()),
   string: fc.constant(stringArbitrary()),

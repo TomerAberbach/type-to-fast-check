@@ -25,9 +25,9 @@ const testCases = (
 test(`typeToArb is transformed`, async () => {
   expect(diagnostics.map(formatDiagnostic)).toMatchInlineSnapshot(`
     [
-      "test0.ts(305,28): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
-      "test0.ts(305,28): warning TStype-to-fast-check: Type parameter has no constraint type. Using \`unknown\`.",
-      "test0.ts(309,43): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
+      "test0.ts(315,28): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
+      "test0.ts(315,28): warning TStype-to-fast-check: Type parameter has no constraint type. Using \`unknown\`.",
+      "test0.ts(319,43): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
     ]
   `)
   await expect(transformedTsCode).toMatchFileSnapshot(

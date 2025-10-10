@@ -11,6 +11,7 @@
 
 import type * as fc from 'fast-check'
 import typeToArb from 'type-to-fast-check'
+import type { Double, Integer } from 'type-to-fast-check'
 
 type TestCase<T = unknown> = {
   arb: fc.Arbitrary<T>
@@ -45,6 +46,15 @@ test({ arb: typeToArb<true>() })
 
 // Number
 test({ arb: typeToArb<number>() })
+test({ arb: typeToArb<number & Integer>(), typecheck: false })
+test({
+  arb: typeToArb<number & Integer<{ min: 0; max: 50 }>>(),
+  typecheck: false,
+})
+test({
+  arb: typeToArb<number & Double<{ min: 0; max: 1 }>>(),
+  typecheck: false,
+})
 test({ arb: typeToArb<0>() })
 test({ arb: typeToArb<1>() })
 test({ arb: typeToArb<42>() })

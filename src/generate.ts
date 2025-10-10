@@ -10,6 +10,7 @@ import {
   doubleArbitrary,
   funcArbitrary,
   mapStringArbitrary,
+  metaArbitrary,
   mutableArbitrary,
   neverArbitrary,
   objectArbitrary,
@@ -27,6 +28,10 @@ import type {
   MutableArbitrary,
 } from './arbitrary.ts'
 import { addDiagnostic, NEW_ISSUE_LINK } from './diagnostics.ts'
+import type { Meta, MetaType } from './meta.ts'
+import { META_TYPES } from './meta.ts'
+import normalizeArbitrary from './normalize.ts'
+import { isFromTypeToFastCheckPackage } from './package.ts'
 
 const generateArbitrary = (
   type: ts.Type,
@@ -464,6 +469,117 @@ const generateUnionArbitrary = (
     ),
   )
 
+const generateIntersectionArbitrary = (
+  type: ts.Type,
+  node: ts.TypeNode,
+  typeChecker: ts.TypeChecker,
+) => {
+  const { types } = type as ts.IntersectionType
+  if (types.length !== 2) {
+    // TODO(#21): Support intersections.
+    addDiagnostic(
+      node,
+      ts.DiagnosticCategory.Error,
+      `Complex intersections are not yet supported.`,
+    )
+    return anythingArbitrary()
+  }
+
+  for (const [index, type] of types.entries()) {
+    const symbols = typeChecker.getPropertiesOfType(type)
+    if (symbols.length !== 1) {
+      continue
+    }
+
+    const memberNode = ts.isIntersectionTypeNode(node)
+      ? (node.types[index] ?? node)
+      : node
+    const meta = extractMeta(symbols[0]!, memberNode, typeChecker)
+    if (!meta) {
+      continue
+    }
+
+    const otherType = types[index === 0 ? 1 : 0]!
+    return metaArbitrary({
+      arbitrary: generateArbitrary(otherType, memberNode, typeChecker),
+      meta,
+    })
+  }
+
+  // TODO(#21): Support intersections.
+  addDiagnostic(
+    node,
+    ts.DiagnosticCategory.Error,
+    `Complex intersections are not yet supported.`,
+  )
+  return anythingArbitrary()
+}
+
+const extractMeta = (
+  symbol: ts.Symbol,
+  node: ts.TypeNode,
+  typeChecker: ts.TypeChecker,
+): Meta | null => {
+  if (!symbol.valueDeclaration) {
+    return null
+  }
+
+  if (
+    !ts.isPropertySignature(symbol.valueDeclaration) &&
+    !ts.isPropertyDeclaration(symbol.valueDeclaration)
+  ) {
+    return null
+  }
+
+  const { name } = symbol.valueDeclaration
+  if (!ts.isComputedPropertyName(name)) {
+    return null
+  }
+
+  const nameType = typeChecker.getTypeAtLocation(name.expression)
+  if (!(nameType.flags & ts.TypeFlags.UniqueESSymbol)) {
+    return null
+  }
+
+  if (!isFromTypeToFastCheckPackage(symbol, typeChecker)) {
+    return null
+  }
+
+  // At this point we can assume this is the `metaSymbol` because there's no
+  // other `unique symbol` in the `type-to-fast-check` package.
+  const metaType = typeChecker.getTypeOfSymbol(symbol)
+  const metaConstant = typeToConstant(
+    metaType,
+    symbol.valueDeclaration.type ?? node,
+    typeChecker,
+  )
+  if (!metaConstant) {
+    return null
+  }
+
+  const meta = metaConstant.value
+  if (
+    typeof meta !== `object` ||
+    meta === null ||
+    !META_TYPES.has((meta as Record<PropertyKey, unknown>).type as MetaType)
+  ) {
+    return null
+  }
+
+  return meta as Meta
+}
+
+const typeToConstant = (
+  type: ts.Type,
+  node: ts.TypeNode,
+  typeChecker: ts.TypeChecker,
+): { value: unknown } | null => {
+  const arbitrary = normalizeArbitrary(
+    generateArbitrary(type, node, typeChecker),
+  )
+  return arbitrary.type === `constant` ? { value: arbitrary.value } : null
+}
+
 const generateUnknownArbitrary = () => anythingArbitrary()
 
 const generateAnyArbitrary = () => anythingArbitrary()
@@ -496,7 +612,6 @@ const generateTypeParameterArbitrary = (
   )
 }
 
-// TODO(#21): Support intersections.
 const typeGenerators = new Map<
   ts.TypeFlags,
   (type: ts.Type, node: ts.TypeNode, typeChecker: ts.TypeChecker) => Arbitrary
@@ -520,6 +635,7 @@ const typeGenerators = new Map<
   [ts.TypeFlags.Object, generateObjectArbitrary],
   [ts.TypeFlags.NonPrimitive, generateNonPrimitiveArbitrary],
   [ts.TypeFlags.Union, generateUnionArbitrary],
+  [ts.TypeFlags.Intersection, generateIntersectionArbitrary],
   [ts.TypeFlags.Unknown, generateUnknownArbitrary],
   [ts.TypeFlags.Any, generateAnyArbitrary],
   [ts.TypeFlags.TypeParameter, generateTypeParameterArbitrary],

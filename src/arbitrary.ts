@@ -1,13 +1,15 @@
-import type * as fc from 'fast-check'
 import keyalesce from 'keyalesce'
+import type { Meta } from './meta.ts'
 
 export type Arbitrary =
   | MutableArbitrary
   | TieArbitrary
+  | MetaArbitrary
   | NeverArbitrary
   | ConstantArbitrary
   | OptionArbitrary
   | BooleanArbitrary
+  | IntegerArbitrary
   | DoubleArbitrary
   | BigIntArbitrary
   | StringArbitrary
@@ -47,6 +49,16 @@ export const tieArbitrary = (
   // This is not memoized because each `tie` arbitrary is different.
   ({ type: `tie`, arbitrary })
 
+export type MetaArbitrary = {
+  type: `meta`
+  arbitrary: Arbitrary
+  meta: Meta
+}
+
+export const metaArbitrary = (
+  props: Pick<MetaArbitrary, `arbitrary` | `meta`>,
+): MetaArbitrary => memoize({ type: `meta`, ...props })
+
 export type NeverArbitrary = {
   type: `never`
 }
@@ -79,14 +91,19 @@ export type BooleanArbitrary = {
 export const booleanArbitrary = (): BooleanArbitrary =>
   memoize({ type: `boolean` })
 
-export type DoubleArbitrary = {
-  type: `double`
-  constraints: fc.DoubleConstraints | undefined
+export type IntegerArbitrary = {
+  type: `integer`
 }
 
-export const doubleArbitrary = (
-  constraints?: DoubleArbitrary[`constraints`],
-): DoubleArbitrary => memoize({ type: `double`, constraints })
+export const integerArbitrary = (): IntegerArbitrary =>
+  memoize({ type: `integer` })
+
+export type DoubleArbitrary = {
+  type: `double`
+}
+
+export const doubleArbitrary = (): DoubleArbitrary =>
+  memoize({ type: `double` })
 
 export type BigIntArbitrary = {
   type: `bigInt`
@@ -235,8 +252,16 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
     case `mutable`:
     case `tie`:
       throw new Error(`Unsupported type`)
+    case `meta`:
+      return keyalesce([
+        arbitrary.type,
+        arbitrary.arbitrary,
+        JSON.stringify(arbitrary.meta),
+      ])
     case `never`:
     case `boolean`:
+    case `integer`:
+    case `double`:
     case `bigInt`:
     case `string`:
     case `symbol`:
@@ -247,8 +272,6 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
       return keyalesce([arbitrary.type, arbitrary.value])
     case `option`:
       return keyalesce([arbitrary.type, arbitrary.arbitrary, arbitrary.nil])
-    case `double`:
-      return keyalesce([arbitrary.type, JSON.stringify(arbitrary.constraints)])
     case `template`:
       return keyalesce([arbitrary.type, ...arbitrary.segments])
     case `mapString`:
@@ -301,9 +324,13 @@ export const collectTieArbitraries = (
           visitArbitrary(arbitrary.value)
         }
         break
+      case `meta`:
+        visitArbitrary(arbitrary.arbitrary)
+        break
       case `never`:
       case `constant`:
       case `boolean`:
+      case `integer`:
       case `double`:
       case `bigInt`:
       case `string`:

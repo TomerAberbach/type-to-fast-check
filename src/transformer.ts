@@ -1,9 +1,9 @@
-import * as pkg from 'empathic/package'
 import ts from 'typescript'
 import { withAddDiagnostic } from './diagnostics.ts'
 import { addFastCheckImport } from './fast-check.ts'
 import generateArbitrary from './generate.ts'
 import normalizeArbitrary from './normalize.ts'
+import { isFromTypeToFastCheckPackage } from './package.ts'
 import reifyArbitraryInternal from './reify.ts'
 
 const createTransformer = (
@@ -87,35 +87,5 @@ const visitTypeToArbCallExpression = (
     true,
   )
 }
-
-const isFromTypeToFastCheckPackage = (
-  symbol: ts.Symbol,
-  typeChecker: ts.TypeChecker,
-): boolean => {
-  if (symbol.flags & ts.SymbolFlags.Alias) {
-    symbol = typeChecker.getAliasedSymbol(symbol)
-  }
-
-  return Boolean(
-    symbol.declarations?.some(
-      declaration =>
-        findPackageJsonPath(declaration.getSourceFile().fileName) ===
-        packageJsonPath,
-    ),
-  )
-}
-
-const findPackageJsonPath = (cwd: string): string | null => {
-  let packageJsonPath = packageJsonPaths.get(cwd)
-  if (packageJsonPath === undefined) {
-    packageJsonPath = pkg.up({ cwd }) ?? null
-    packageJsonPaths.set(cwd, packageJsonPath)
-  }
-  return packageJsonPath
-}
-
-const packageJsonPaths = new Map<string, string | null>()
-
-const packageJsonPath = findPackageJsonPath(import.meta.dirname)
 
 export default createTransformer

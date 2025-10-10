@@ -11,6 +11,7 @@ import * as ttfc from 'fast-check'
 /* eslint-disable stylistic/quotes */
 import type * as fc from 'fast-check'
 import typeToArb from 'type-to-fast-check'
+import type { Double, Integer } from 'type-to-fast-check'
 type TestCase<T = unknown> = {
   arb: fc.Arbitrary<T>
   typecheck?: boolean
@@ -67,6 +68,24 @@ test({
   arb:
     // number
     ttfc.double(),
+})
+test({
+  arb:
+    // number & Integer
+    ttfc.integer(),
+  typecheck: false,
+})
+test({
+  arb:
+    // number & Integer<{ min: 0; max: 50; }>
+    ttfc.integer({ min: 0, max: 50 }),
+  typecheck: false,
+})
+test({
+  arb:
+    // number & Double<{ min: 0; max: 1; }>
+    ttfc.double({ min: 0, max: 1 }),
+  typecheck: false,
 })
 test({
   arb:

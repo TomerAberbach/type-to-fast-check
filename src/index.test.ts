@@ -2,9 +2,10 @@ import fs from 'node:fs/promises'
 import { fc, test } from '@fast-check/vitest'
 import { importFromString } from 'import-from-string'
 import jsesc from 'jsesc'
+import ts from 'typescript'
 import { expect } from 'vitest'
 import type * as TestCases from './fixtures/test-cases.ts'
-import { transpileTypeScript } from './typescript.ts'
+import { formatDiagnostic, transpileTypeScript } from './typescript.ts'
 
 const fixturesPath = `${import.meta.dirname}/fixtures`
 
@@ -13,14 +14,22 @@ const types = Array.from(
   tsCode.matchAll(/typeToArb<(?<type>(?:.|\n)(?:.|\n)*?)>\(\)/gu),
   ({ groups }) => groups?.type ?? `?`,
 )
-const { transformedTsCode, jsCode, errorDiagnostics } =
-  await transpileTypeScript(tsCode, { transform: true })
+const { transformedTsCode, jsCode, diagnostics } = await transpileTypeScript(
+  tsCode,
+  { transform: true },
+)
 const testCases = (
   (await importFromString(jsCode)) as typeof TestCases
 ).default.map((testCase, index) => ({ type: types[index]!, ...testCase }))
 
 test(`typeToArb is transformed`, async () => {
-  expect(errorDiagnostics).toStrictEqual([])
+  expect(diagnostics.map(formatDiagnostic)).toMatchInlineSnapshot(`
+    [
+      "test0.ts(305,28): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
+      "test0.ts(305,28): warning TStype-to-fast-check: Type parameter has no constraint type. Using \`unknown\`.",
+      "test0.ts(309,43): warning TStype-to-fast-check: Cannot dynamically generate type parameter arbitrary. Using its constraint type.",
+    ]
+  `)
   await expect(transformedTsCode).toMatchFileSnapshot(
     `${fixturesPath}/test-cases.transformed.ts`,
   )
@@ -45,7 +54,7 @@ for (const { type, arb, typecheck = true } of testCases) {
       .join(`, `)}]`
     context.log(statement)
 
-    const { errorDiagnostics } = await transpileTypeScript(
+    const { diagnostics } = await transpileTypeScript(
       [
         // For when `type` references something defined in `test-cases.ts`
         tsCode,
@@ -57,6 +66,9 @@ for (const { type, arb, typecheck = true } of testCases) {
       ].join(`\n`),
     )
 
+    const errorDiagnostics = diagnostics
+      .filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error)
+      .map(formatDiagnostic)
     expect(errorDiagnostics).toStrictEqual([])
   })
 }

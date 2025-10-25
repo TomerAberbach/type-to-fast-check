@@ -2,7 +2,7 @@ import ts from 'typescript'
 
 export const fcCallExpression = (
   methodName: string,
-  argExpressions: ts.Expression[] = [],
+  argExpressions: (ts.Expression | undefined)[] = [],
 ): ts.CallExpression =>
   ts.factory.createCallExpression(
     ts.factory.createPropertyAccessExpression(
@@ -10,7 +10,7 @@ export const fcCallExpression = (
       ts.factory.createIdentifier(methodName),
     ),
     undefined,
-    argExpressions,
+    argExpressions.filter(expression => expression !== undefined),
   )
 
 export const addFastCheckImport = (

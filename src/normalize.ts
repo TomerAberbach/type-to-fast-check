@@ -7,9 +7,10 @@ import {
   constantArbitrary,
   constantFromArbitrary,
   dictionaryArbitrary,
-  doubleArbitrary,
   funcArbitrary,
+  integerArbitrary,
   mapStringArbitrary,
+  metaArbitrary,
   neverArbitrary,
   oneofArbitrary,
   optionArbitrary,
@@ -25,6 +26,7 @@ import type {
   DictionaryArbitrary,
   FuncArbitrary,
   MapStringArbitrary,
+  MetaArbitrary,
   MutableArbitrary,
   OneofArbitrary,
   OptionArbitrary,
@@ -68,9 +70,16 @@ const normalizeArbitraryInternal = (
         arbitraryTieArbitraries,
       )
       break
+    case `meta`:
+      normalizedArbitrary = normalizeMetaArbitrary(
+        arbitrary,
+        arbitraryTieArbitraries,
+      )
+      break
     case `never`:
     case `constant`:
     case `boolean`:
+    case `integer`:
     case `double`:
     case `bigInt`:
     case `string`:
@@ -177,6 +186,37 @@ const normalizeTieArbitrary = (
   // Canonicalize to tie arbitraries based on their constituent.
   arbitraryTieArbitraries.get(arbitrary.arbitrary)!.values().next().value!
 
+const normalizeMetaArbitrary = (
+  arbitrary: MetaArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary => {
+  const innerArbitrary = normalizeArbitraryInternal(
+    arbitrary.arbitrary,
+    arbitraryTieArbitraries,
+  )
+
+  switch (arbitrary.meta.type) {
+    case `integer`:
+      if (innerArbitrary.type !== `double`) {
+        // TODO(#66): Add a diagnostic.
+        return innerArbitrary
+      }
+      return metaArbitrary({
+        arbitrary: integerArbitrary(),
+        meta: arbitrary.meta,
+      })
+    case `double`:
+      if (innerArbitrary.type !== `double`) {
+        // TODO(#66): Add a diagnostic.
+        return innerArbitrary
+      }
+      return metaArbitrary({
+        arbitrary: innerArbitrary,
+        meta: arbitrary.meta,
+      })
+  }
+}
+
 const normalizeOptionArbitrary = (
   arbitrary: OptionArbitrary,
   arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
@@ -195,6 +235,25 @@ const normalizeTemplateArbitrary = (
     if (typeof segment !== `string`) {
       segment = normalizeArbitraryInternal(segment, arbitraryTieArbitraries)
       switch (segment.type) {
+        case `meta`:
+          switch (segment.meta.type) {
+            case `integer`:
+              break
+            case `double`:
+              segment = metaArbitrary({
+                arbitrary: segment.arbitrary,
+                meta: {
+                  ...segment.meta,
+                  constraints: {
+                    ...segment.meta.constraints,
+                    noDefaultInfinity: true,
+                    noNaN: true,
+                  },
+                },
+              })
+              break
+          }
+          break
         case `never`:
           return neverArbitrary()
         case `constant`:
@@ -204,16 +263,19 @@ const normalizeTemplateArbitrary = (
           flattenedSegments.push(...segment.segments)
           break
         case `double`:
-          segment = doubleArbitrary({
-            ...segment.constraints,
-            noDefaultInfinity: true,
-            noNaN: true,
+          segment = metaArbitrary({
+            arbitrary: segment,
+            meta: {
+              type: `double`,
+              constraints: { noDefaultInfinity: true, noNaN: true },
+            },
           })
           break
         case `mutable`:
         case `tie`:
         case `option`:
         case `boolean`:
+        case `integer`:
         case `bigInt`:
         case `string`:
         case `symbol`:
@@ -505,8 +567,10 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
   switch (arbitrary.type) {
     case `mutable`:
     case `tie`:
+    case `meta`:
     case `constant`:
     case `boolean`:
+    case `integer`:
     case `double`:
     case `bigInt`:
     case `string`:

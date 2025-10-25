@@ -249,9 +249,11 @@ const memoize = <A extends Arbitrary>(arbitrary: A): A => {
 
 const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
   switch (arbitrary.type) {
+    /* c8 ignore start */
     case `mutable`:
     case `tie`:
       throw new Error(`Unsupported type`)
+    /* c8 ignore end */
     case `meta`:
       return keyalesce([
         arbitrary.type,

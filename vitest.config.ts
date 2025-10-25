@@ -6,6 +6,7 @@ export default defineConfig({
     setupFiles: [`vitest.setup.ts`],
     coverage: {
       include: [`src`],
+      exclude: [`src/fixtures`, `src/typescript.ts`],
     },
     include: defaultInclude.map(include => `src/${include}`),
     exclude: [...defaultExclude, `.rollup.cache`],

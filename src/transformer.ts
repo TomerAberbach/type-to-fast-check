@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict'
 import ts from 'typescript'
 import { withAddDiagnostic } from './diagnostics.ts'
 import { addFastCheckImport } from './fast-check.ts'
@@ -63,15 +64,11 @@ const visitTypeToArbCallExpression = (
   }
 
   const signature = typeChecker.getResolvedSignature(node)
-  if (!signature) {
-    return
-  }
+  assert(signature, `Expected resolvable signature`)
 
   const typeArguments =
     typeChecker.getTypeArgumentsForResolvedSignature(signature)
-  if (typeArguments?.length !== 1) {
-    return
-  }
+  assert(typeArguments?.length === 1, `Expected exactly one type argument`)
 
   const type = typeArguments[0]!
   const arbitrary = generateArbitrary(

@@ -35,7 +35,7 @@ import type {
   TieArbitrary,
   TupleArbitrary,
 } from './arbitrary.ts'
-import { compareConstants } from './sort.ts'
+import { compareArbitraries, compareConstants } from './sort.ts'
 
 const normalizeArbitrary = (arbitrary: Arbitrary): Arbitrary => {
   const tieArbitraries = collectTieArbitraries(arbitrary)
@@ -106,14 +106,14 @@ const normalizeArbitraryInternal = (
         arbitraryTieArbitraries,
       )
       break
-    case `array`:
-      normalizedArbitrary = normalizeArrayArbitrary(
+    case `tuple`:
+      normalizedArbitrary = normalizeTupleArbitrary(
         arbitrary,
         arbitraryTieArbitraries,
       )
       break
-    case `tuple`:
-      normalizedArbitrary = normalizeTupleArbitrary(
+    case `array`:
+      normalizedArbitrary = normalizeArrayArbitrary(
         arbitrary,
         arbitraryTieArbitraries,
       )
@@ -280,8 +280,8 @@ const normalizeTemplateArbitrary = (
         case `string`:
         case `symbol`:
         case `mapString`:
-        case `array`:
         case `tuple`:
+        case `array`:
         case `record`:
         case `dictionary`:
         case `object`:
@@ -345,14 +345,6 @@ const normalizeMapStringArbitrary = (
     operation: arbitrary.operation,
   })
 
-const normalizeArrayArbitrary = (
-  arbitrary: ArrayArbitrary,
-  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
-): Arbitrary =>
-  arrayArbitrary(
-    normalizeArbitraryInternal(arbitrary.items, arbitraryTieArbitraries),
-  )
-
 const normalizeTupleArbitrary = (
   arbitrary: TupleArbitrary,
   arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
@@ -377,6 +369,14 @@ const normalizeTupleArbitrary = (
 
   return constantArbitrary(constantElements)
 }
+
+const normalizeArrayArbitrary = (
+  arbitrary: ArrayArbitrary,
+  arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
+): Arbitrary =>
+  arrayArbitrary(
+    normalizeArbitraryInternal(arbitrary.items, arbitraryTieArbitraries),
+  )
 
 const normalizeRecordArbitrary = (
   arbitrary: RecordArbitrary,
@@ -429,7 +429,14 @@ const normalizeConstantFromArbitrary = (
   arbitraryTieArbitraries: Map<Arbitrary, Set<TieArbitrary>>,
 ): Arbitrary => {
   const constants = new SameValueSet(
-    arbitrary.constants.toSorted(compareConstants),
+    arbitrary.constants
+      // Ensure we compare `undefined` values, which by default are placed at
+      // the end by `sort`.
+      .map(constant => ({ constant }))
+      .sort((value1, value2) =>
+        compareConstants(value1.constant, value2.constant),
+      )
+      .map(({ constant }) => constant),
   )
   switch (constants.size) {
     case 0:
@@ -560,7 +567,7 @@ const normalizeOneofArbitrary = (
     })
   }
 
-  return oneofArbitrary([...variants])
+  return oneofArbitrary([...variants].sort(compareArbitraries))
 }
 
 const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
@@ -577,8 +584,8 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `template`:
     case `mapString`:
     case `symbol`:
-    case `array`:
     case `tuple`:
+    case `array`:
     case `record`:
     case `dictionary`:
     case `object`:

@@ -80,10 +80,10 @@ const reifyArbitraryInternal = (
   switch (arbitrary.type) {
     case `mutable`:
       throw new Error(`Unsupported type`)
-    case `never`:
-      return neverArbitraryExpression()
     case `meta`:
       return metaArbitraryExpression(arbitrary, tieArbitraryNames)
+    case `never`:
+      return neverArbitraryExpression()
     case `constant`:
       return constantArbitraryExpression(arbitrary)
     case `boolean`:
@@ -102,14 +102,14 @@ const reifyArbitraryInternal = (
       return mapStringArbitraryExpression(arbitrary, tieArbitraryNames)
     case `symbol`:
       return symbolArbitraryExpression(constraintsExpression)
+    case `tuple`:
+      return tupleArbitraryExpression(arbitrary, tieArbitraryNames)
     case `array`:
       return arrayArbitraryExpression(
         arbitrary,
         tieArbitraryNames,
         constraintsExpression,
       )
-    case `tuple`:
-      return tupleArbitraryExpression(arbitrary, tieArbitraryNames)
     case `record`:
       return recordArbitraryExpression(arbitrary, tieArbitraryNames)
     case `dictionary`:
@@ -133,6 +133,18 @@ const reifyArbitraryInternal = (
   }
 }
 
+const metaArbitraryExpression = (
+  arbitrary: MetaArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+): ts.Expression =>
+  reifyArbitraryInternal(
+    arbitrary.arbitrary,
+    tieArbitraryNames,
+    arbitrary.meta.constraints === undefined
+      ? undefined
+      : literalExpression(arbitrary.meta.constraints),
+  )
+
 const neverArbitraryExpression = (): ts.Expression =>
   mapArbitraryExpression(
     fcCallExpression(`constant`, [literalExpression(`never`)]),
@@ -146,18 +158,6 @@ const neverArbitraryExpression = (): ts.Expression =>
           ),
         ),
       ]),
-  )
-
-const metaArbitraryExpression = (
-  arbitrary: MetaArbitrary,
-  tieArbitraryNames: Map<TieArbitrary, string>,
-): ts.Expression =>
-  reifyArbitraryInternal(
-    arbitrary.arbitrary,
-    tieArbitraryNames,
-    arbitrary.meta.constraints === undefined
-      ? undefined
-      : literalExpression(arbitrary.meta.constraints),
   )
 
 const constantArbitraryExpression = (
@@ -262,20 +262,20 @@ const mapStringArbitraryExpression = (
       // See `applyStringMapping` here:
       // https://raw.githubusercontent.com/microsoft/TypeScript/refs/heads/main/src/compiler/checker.ts
       switch (arbitrary.operation) {
-        case `uppercase`:
         case `lowercase`:
+        case `uppercase`:
           return ts.factory.createCallExpression(
             ts.factory.createPropertyAccessExpression(
               valueIdentifier,
-              arbitrary.operation === `uppercase`
-                ? `toUpperCase`
-                : `toLowerCase`,
+              arbitrary.operation === `lowercase`
+                ? `toLowerCase`
+                : `toUpperCase`,
             ),
             undefined,
             undefined,
           )
-        case `capitalize`:
-        case `uncapitalize`: {
+        case `uncapitalize`:
+        case `capitalize`: {
           const firstCharacterExpression = ts.factory.createCallExpression(
             ts.factory.createPropertyAccessExpression(
               valueIdentifier,
@@ -288,9 +288,9 @@ const mapStringArbitraryExpression = (
             ts.factory.createCallExpression(
               ts.factory.createPropertyAccessExpression(
                 firstCharacterExpression,
-                arbitrary.operation === `capitalize`
-                  ? `toUpperCase`
-                  : `toLowerCase`,
+                arbitrary.operation === `uncapitalize`
+                  ? `toLowerCase`
+                  : `toUpperCase`,
               ),
               undefined,
               undefined,
@@ -323,16 +323,6 @@ const symbolArbitraryExpression = (
       ),
   )
 
-const arrayArbitraryExpression = (
-  arbitrary: ArrayArbitrary,
-  tieArbitraryNames: Map<TieArbitrary, string>,
-  constraintsExpression: ts.Expression | undefined,
-) =>
-  fcCallExpression(`array`, [
-    reifyArbitraryInternal(arbitrary.items, tieArbitraryNames),
-    constraintsExpression,
-  ])
-
 const tupleArbitraryExpression = (
   arbitrary: TupleArbitrary,
   tieArbitraryNames: Map<TieArbitrary, string>,
@@ -361,6 +351,16 @@ const tupleArbitraryExpression = (
     ),
   )
 }
+
+const arrayArbitraryExpression = (
+  arbitrary: ArrayArbitrary,
+  tieArbitraryNames: Map<TieArbitrary, string>,
+  constraintsExpression: ts.Expression | undefined,
+) =>
+  fcCallExpression(`array`, [
+    reifyArbitraryInternal(arbitrary.items, tieArbitraryNames),
+    constraintsExpression,
+  ])
 
 const recordArbitraryExpression = (
   arbitrary: RecordArbitrary,
@@ -437,8 +437,8 @@ const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
     case `double`:
     case `bigInt`:
     case `symbol`:
-    case `array`:
     case `tuple`:
+    case `array`:
     case `record`:
     case `dictionary`:
     case `object`:

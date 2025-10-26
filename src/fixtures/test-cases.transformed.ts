@@ -231,6 +231,8 @@ test({
         ttfc.string(),
       )
       .map(value => `${value[0]} - ${value[1]} - ${value[2]}`),
+  // https://github.com/microsoft/TypeScript/issues/62625
+  typecheck: false,
 })
 test({
   arb:

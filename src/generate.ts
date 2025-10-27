@@ -172,10 +172,10 @@ const stringMappingOperations: ReadonlyMap<
   string,
   MapStringArbitrary[`operation`]
 > = new Map([
-  [`Uppercase`, `uppercase`],
   [`Lowercase`, `lowercase`],
-  [`Capitalize`, `capitalize`],
+  [`Uppercase`, `uppercase`],
   [`Uncapitalize`, `uncapitalize`],
+  [`Capitalize`, `capitalize`],
 ])
 
 const generateSymbolArbitrary = () => symbolArbitrary()

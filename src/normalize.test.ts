@@ -50,8 +50,8 @@ const arbitraryArb = fc.letrec<
     tie(`template`),
     tie(`mapString`),
     tie(`symbol`),
-    tie(`array`),
     tie(`tuple`),
+    tie(`array`),
     tie(`record`),
     tie(`dictionary`),
     tie(`object`),
@@ -74,6 +74,11 @@ const arbitraryArb = fc.letrec<
   double: fc.constant(doubleArbitrary()),
   bigInt: fc.constant(bigIntArbitrary()),
   string: fc.constant(stringArbitrary()),
+  template: fc
+    .array(fc.oneof({ depthIdentifier }, fc.string(), tie(`arbitrary`)), {
+      depthIdentifier,
+    })
+    .map(templateArbitrary),
   mapString: fc
     .record(
       {
@@ -88,13 +93,7 @@ const arbitraryArb = fc.letrec<
       { noNullPrototype: true },
     )
     .map(mapStringArbitrary),
-  template: fc
-    .array(fc.oneof({ depthIdentifier }, fc.string(), tie(`arbitrary`)), {
-      depthIdentifier,
-    })
-    .map(templateArbitrary),
   symbol: fc.constant(symbolArbitrary()),
-  array: tie(`arbitrary`).map(arrayArbitrary),
   tuple: fc
     .array(
       fc.oneof(
@@ -110,6 +109,7 @@ const arbitraryArb = fc.letrec<
       { minLength: 1, depthIdentifier },
     )
     .map(tupleArbitrary),
+  array: tie(`arbitrary`).map(arrayArbitrary),
   record: fc
     .uniqueArray(
       fc.tuple(

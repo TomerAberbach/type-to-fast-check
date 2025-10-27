@@ -265,11 +265,63 @@ test({ arb: typeToArb<true | false>() })
 test({ arb: typeToArb<1 | 3 | 2 | 4>() })
 test({ arb: typeToArb<1n | 3n | 2n | 4n>() })
 test({ arb: typeToArb<'b' | 'a' | 'd' | 'c'>() })
+test({
+  arb: typeToArb<
+    | 1
+    | 'a'
+    | 2
+    | undefined
+    | null
+    | { a: 2; c: 2 }
+    | { a: 2; c: 4 }
+    | { a: 2; c: 3 }
+    | { b: 3 }
+    | { a: 2; b: 3 }
+    | { a: 2 }
+    | 'b'
+    | 3n
+    | 'c'
+    | 1n
+  >(),
+})
 test({ arb: typeToArb<string | undefined>() })
 test({ arb: typeToArb<string | null>() })
 test({ arb: typeToArb<string | undefined | null>() })
 test({ arb: typeToArb<string | number>() })
 test({ arb: typeToArb<string | never>() })
+test({
+  arb: typeToArb<
+    | string
+    | (() =>
+        | Uppercase<string>
+        | Capitalize<string>
+        | Uncapitalize<string>
+        | number
+        | Lowercase<string>)
+    | undefined
+    | (() => number)
+    | { b: number }
+    | boolean
+    | [string, number, boolean]
+    | object
+    | [string, number]
+    | Record<string, `${number}: ${string}` | number>
+    | Record<string, number>
+    | Record<number, number>
+    | (number & Integer)
+    | number
+    | { a: number; b: string }
+    | [string, number, ...boolean[]]
+    | [string, string]
+    | { a: number }
+    | { a: number; b?: number }
+    | { a: number; b: number }
+    | bigint
+    | string[]
+    | symbol
+    | number[]
+  >(),
+})
 test({ arb: typeToArb<Exclude<string | undefined, string>>() })
 test({
   arb: typeToArb<

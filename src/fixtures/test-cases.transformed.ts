@@ -348,6 +348,7 @@ test({
   arb:
     // [(string | undefined)?, (number | undefined)?, (boolean | undefined)?]
     ttfc.oneof(
+      ttfc.constant([]),
       ttfc.tuple(ttfc.option(ttfc.string(), { nil: undefined })),
       ttfc.tuple(
         ttfc.option(ttfc.string(), { nil: undefined }),
@@ -358,7 +359,6 @@ test({
         ttfc.option(ttfc.double(), { nil: undefined }),
         ttfc.option(ttfc.boolean(), { nil: undefined }),
       ),
-      ttfc.constant([]),
     ),
 })
 test({
@@ -643,7 +643,7 @@ test({
       .tuple(
         ttfc.dictionary(
           ttfc.string(),
-          ttfc.oneof(ttfc.string(), ttfc.double()),
+          ttfc.oneof(ttfc.double(), ttfc.string()),
         ),
         ttfc.record({ a: ttfc.string() }),
       )
@@ -841,6 +841,27 @@ test({
 })
 test({
   arb:
+    // 1 | 1n | 3n | 2 | "a" | "b" | "c" | { a: 2; c: 2; } | { a: 2; c: 4; } | { a: 2; c: 3; } | { b: 3; } | { a: 2; b: 3; } | { a: 2; } | null | undefined
+    ttfc.constantFrom(
+      undefined,
+      null,
+      1,
+      2,
+      1n,
+      3n,
+      'a',
+      'b',
+      'c',
+      { a: 2 },
+      { b: 3 },
+      { a: 2, b: 3 },
+      { a: 2, c: 2 },
+      { a: 2, c: 3 },
+      { a: 2, c: 4 },
+    ),
+})
+test({
+  arb:
     // string | undefined
     ttfc.option(ttfc.string(), { nil: undefined }),
 })
@@ -852,17 +873,83 @@ test({
 test({
   arb:
     // string | null | undefined
-    ttfc.oneof(ttfc.string(), ttfc.constantFrom(null, undefined)),
+    ttfc.oneof(ttfc.string(), ttfc.constantFrom(undefined, null)),
 })
 test({
   arb:
     // string | number
-    ttfc.oneof(ttfc.string(), ttfc.double()),
+    ttfc.oneof(ttfc.double(), ttfc.string()),
 })
 test({
   arb:
     // string
     ttfc.string(),
+})
+test({
+  arb:
+    // string | number | bigint | boolean | symbol | object | (number & Integer) | string[] | [string, number] | [string, number, boolean] | [string, number, ...boolean[]] | number[] | ... 11 more ... | undefined
+    ttfc.option(
+      ttfc.oneof(
+        ttfc.boolean(),
+        ttfc.integer(),
+        ttfc.double(),
+        ttfc.bigInt(),
+        ttfc.string(),
+        ttfc.string().map(value => globalThis.Symbol(value)),
+        ttfc.tuple(ttfc.string(), ttfc.double()),
+        ttfc.tuple(ttfc.string(), ttfc.string()),
+        ttfc.tuple(ttfc.string(), ttfc.double(), ttfc.boolean()),
+        ttfc
+          .tuple(ttfc.string(), ttfc.double(), ttfc.array(ttfc.boolean()))
+          .map(value => [value[0], value[1], ...value[2]]),
+        ttfc.array(ttfc.double()),
+        ttfc.array(ttfc.string()),
+        ttfc.record({ a: ttfc.double() }),
+        ttfc.record({ b: ttfc.double() }),
+        ttfc.record({ a: ttfc.double(), b: ttfc.double() }),
+        ttfc.record({ a: ttfc.double(), b: ttfc.string() }),
+        ttfc.record(
+          {
+            a: ttfc.double(),
+            b: ttfc.option(ttfc.double(), { nil: undefined }),
+          },
+          { requiredKeys: ['a'] },
+        ),
+        ttfc.dictionary(
+          ttfc.double().map(value => globalThis.String(value)),
+          ttfc.double(),
+        ),
+        ttfc.dictionary(ttfc.string(), ttfc.double()),
+        ttfc.dictionary(
+          ttfc.string(),
+          ttfc.oneof(
+            ttfc.double(),
+            ttfc
+              .tuple(
+                ttfc.double({ noDefaultInfinity: true, noNaN: true }),
+                ttfc.string(),
+              )
+              .map(value => `${value[0]}: ${value[1]}`),
+          ),
+        ),
+        ttfc.object(),
+        ttfc.func(ttfc.double()),
+        ttfc.func(
+          ttfc.oneof(
+            ttfc.double(),
+            ttfc.string().map(value => value.toLowerCase()),
+            ttfc.string().map(value => value.toUpperCase()),
+            ttfc
+              .string()
+              .map(value => value.charAt(0).toLowerCase() + value.slice(1)),
+            ttfc
+              .string()
+              .map(value => value.charAt(0).toUpperCase() + value.slice(1)),
+          ),
+        ),
+      ),
+      { nil: undefined },
+    ),
 })
 test({
   arb:

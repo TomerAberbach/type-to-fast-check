@@ -14,9 +14,10 @@ export type Arbitrary =
   | BigIntArbitrary
   | StringArbitrary
   | TemplateArbitrary
+  | MapStringArbitrary
   | SymbolArbitrary
-  | ArrayArbitrary
   | TupleArbitrary
+  | ArrayArbitrary
   | RecordArbitrary
   | DictionaryArbitrary
   | ObjectArbitrary
@@ -24,7 +25,6 @@ export type Arbitrary =
   | ConstantFromArbitrary
   | OneofArbitrary
   | AssignArbitrary
-  | MapStringArbitrary
   | AnythingArbitrary
 
 export type MutableArbitrary = {
@@ -131,7 +131,7 @@ export const templateArbitrary = (
 export type MapStringArbitrary = {
   type: `mapString`
   arbitrary: Arbitrary
-  operation: `uppercase` | `lowercase` | `capitalize` | `uncapitalize`
+  operation: `lowercase` | `uppercase` | `uncapitalize` | `capitalize`
 }
 
 export const mapStringArbitrary = (
@@ -145,15 +145,6 @@ export type SymbolArbitrary = {
 export const symbolArbitrary = (): SymbolArbitrary =>
   memoize({ type: `symbol` })
 
-export type ArrayArbitrary = {
-  type: `array`
-  items: Arbitrary
-}
-
-export const arrayArbitrary = (
-  items: ArrayArbitrary[`items`],
-): ArrayArbitrary => memoize({ type: `array`, items })
-
 export type TupleArbitrary = {
   type: `tuple`
   elements: { arbitrary: Arbitrary; rest: boolean }[]
@@ -162,6 +153,15 @@ export type TupleArbitrary = {
 export const tupleArbitrary = (
   elements: TupleArbitrary[`elements`],
 ): TupleArbitrary => memoize({ type: `tuple`, elements })
+
+export type ArrayArbitrary = {
+  type: `array`
+  items: Arbitrary
+}
+
+export const arrayArbitrary = (
+  items: ArrayArbitrary[`items`],
+): ArrayArbitrary => memoize({ type: `array`, items })
 
 export type RecordArbitrary = {
   type: `record`
@@ -282,8 +282,6 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
         arbitrary.arbitrary,
         arbitrary.operation,
       ])
-    case `array`:
-      return keyalesce([arbitrary.type, arbitrary.items])
     case `tuple`:
       return keyalesce([
         arbitrary.type,
@@ -292,6 +290,8 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
           rest,
         ]),
       ])
+    case `array`:
+      return keyalesce([arbitrary.type, arbitrary.items])
     case `record`:
       return keyalesce([
         arbitrary.type,
@@ -351,13 +351,13 @@ export const collectTieArbitraries = (
       case `mapString`:
         visitArbitrary(arbitrary.arbitrary)
         break
-      case `array`:
-        visitArbitrary(arbitrary.items)
-        break
       case `tuple`:
         for (const element of arbitrary.elements) {
           visitArbitrary(element.arbitrary)
         }
+        break
+      case `array`:
+        visitArbitrary(arbitrary.items)
         break
       case `record`:
         for (const property of arbitrary.properties.values()) {

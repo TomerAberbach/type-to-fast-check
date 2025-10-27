@@ -477,6 +477,25 @@ test({
 })
 test({
   arb:
+    // { a: string; b: never; }
+    ttfc.record({
+      a: ttfc.string(),
+      b: ttfc.constant('never').map(value => {
+        throw new globalThis.Error(value)
+      }),
+    }),
+  typecheck: false,
+})
+test({
+  arb:
+    // { a: string; b?: undefined; }
+    ttfc.record(
+      { a: ttfc.string(), b: ttfc.constant(undefined) },
+      { requiredKeys: ['a'] },
+    ),
+})
+test({
+  arb:
     // Partial<{ a: string; b?: number | undefined; }>
     ttfc.record({
       a: ttfc.option(ttfc.string(), { nil: undefined }),

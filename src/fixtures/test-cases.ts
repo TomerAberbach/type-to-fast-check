@@ -85,7 +85,11 @@ test({ arb: typeToArb<`Hello ${bigint}!`>() })
 test({ arb: typeToArb<`Hello ${42n}!`>() })
 test({ arb: typeToArb<`${string}`>() })
 test({ arb: typeToArb<`Hello ${string}!`>() })
-test({ arb: typeToArb<`${string} - ${number} - ${string}`>() })
+test({
+  arb: typeToArb<`${string} - ${number} - ${string}`>(),
+  // https://github.com/microsoft/TypeScript/issues/62625
+  typecheck: false,
+})
 test({ arb: typeToArb<Uppercase<'hi'>>() })
 test({ arb: typeToArb<Uppercase<string>>() })
 test({ arb: typeToArb<Lowercase<'HI'>>() })

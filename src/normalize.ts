@@ -84,6 +84,9 @@ const normalizeArbitraryInternal = (
     case `bigInt`:
     case `string`:
     case `symbol`:
+    case `intArray`:
+    case `bigIntArray`:
+    case `floatArray`:
     case `object`:
     case `anything`:
       normalizedArbitrary = arbitrary
@@ -278,8 +281,11 @@ const normalizeTemplateArbitrary = (
         case `integer`:
         case `bigInt`:
         case `string`:
-        case `symbol`:
         case `mapString`:
+        case `symbol`:
+        case `intArray`:
+        case `bigIntArray`:
+        case `floatArray`:
         case `tuple`:
         case `array`:
         case `record`:
@@ -584,6 +590,9 @@ const spreadUnionArbitraries = (arbitrary: Arbitrary): Arbitrary[] => {
     case `template`:
     case `mapString`:
     case `symbol`:
+    case `intArray`:
+    case `bigIntArray`:
+    case `floatArray`:
     case `tuple`:
     case `array`:
     case `record`:

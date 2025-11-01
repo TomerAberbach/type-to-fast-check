@@ -74,7 +74,7 @@
     "fast-check": "^4.3.0",
     "import-from-string": "^0.0.5",
     "jest-extended": "^6.0.0",
-    "jsesc": "^3.1.0",
+    "jsesc": "github:TomerAberbach/jsesc#feat/typed-arrays",
     "prettier": "^3.6.2",
     "publint": "^0.3.12",
     "tsdown": "^0.15.2",

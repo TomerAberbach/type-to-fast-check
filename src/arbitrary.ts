@@ -17,6 +17,9 @@ export type Arbitrary =
   | MapStringArbitrary
   | SymbolArbitrary
   | TupleArbitrary
+  | IntArrayArbitrary
+  | BigIntArrayArbitrary
+  | FloatArrayArbitrary
   | ArrayArbitrary
   | RecordArbitrary
   | DictionaryArbitrary
@@ -144,6 +147,35 @@ export type SymbolArbitrary = {
 
 export const symbolArbitrary = (): SymbolArbitrary =>
   memoize({ type: `symbol` })
+
+export type IntArrayArbitrary = {
+  type: `intArray`
+  bits: 8 | 16 | 32
+  signed: boolean
+  clamped: boolean
+}
+
+export const intArrayArbitrary = (
+  props: Pick<IntArrayArbitrary, `bits` | `signed` | `clamped`>,
+): IntArrayArbitrary => memoize({ type: `intArray`, ...props })
+
+export type BigIntArrayArbitrary = {
+  type: `bigIntArray`
+  signed: boolean
+}
+
+export const bigIntArrayArbitrary = (
+  props: Pick<BigIntArrayArbitrary, `signed`>,
+): BigIntArrayArbitrary => memoize({ type: `bigIntArray`, ...props })
+
+export type FloatArrayArbitrary = {
+  type: `floatArray`
+  bits: 16 | 32 | 64
+}
+
+export const floatArrayArbitrary = (
+  props: Pick<FloatArrayArbitrary, `bits`>,
+): FloatArrayArbitrary => memoize({ type: `floatArray`, ...props })
 
 export type TupleArbitrary = {
   type: `tuple`
@@ -282,6 +314,17 @@ const getArbitraryKey = (arbitrary: Arbitrary): ArbitraryKey => {
         arbitrary.arbitrary,
         arbitrary.operation,
       ])
+    case `intArray`:
+      return keyalesce([
+        arbitrary.type,
+        arbitrary.bits,
+        arbitrary.signed,
+        arbitrary.clamped,
+      ])
+    case `bigIntArray`:
+      return keyalesce([arbitrary.type, arbitrary.signed])
+    case `floatArray`:
+      return keyalesce([arbitrary.type, arbitrary.bits])
     case `tuple`:
       return keyalesce([
         arbitrary.type,
@@ -337,6 +380,9 @@ export const collectTieArbitraries = (
       case `bigInt`:
       case `string`:
       case `symbol`:
+      case `intArray`:
+      case `bigIntArray`:
+      case `floatArray`:
       case `object`:
       case `constantFrom`:
       case `anything`:

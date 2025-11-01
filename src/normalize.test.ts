@@ -6,12 +6,15 @@ import {
   arrayArbitrary,
   assignArbitrary,
   bigIntArbitrary,
+  bigIntArrayArbitrary,
   booleanArbitrary,
   constantArbitrary,
   constantFromArbitrary,
   dictionaryArbitrary,
   doubleArbitrary,
+  floatArrayArbitrary,
   funcArbitrary,
+  intArrayArbitrary,
   integerArbitrary,
   mapStringArbitrary,
   neverArbitrary,
@@ -94,6 +97,20 @@ const arbitraryArb = fc.letrec<
     )
     .map(mapStringArbitrary),
   symbol: fc.constant(symbolArbitrary()),
+  intArray: fc
+    .oneof(
+      fc.constant({ bits: 8, signed: false, clamped: true }),
+      fc.record({
+        bits: fc.constantFrom(8, 16, 32),
+        signed: fc.boolean(),
+        clamped: fc.constant(false),
+      }),
+    )
+    .map(intArrayArbitrary),
+  bigIntArray: fc.record({ signed: fc.boolean() }).map(bigIntArrayArbitrary),
+  floatArray: fc
+    .record({ bits: fc.constantFrom(16, 32, 64) })
+    .map(floatArrayArbitrary),
   tuple: fc
     .array(
       fc.oneof(

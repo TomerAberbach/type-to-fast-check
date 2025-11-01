@@ -287,6 +287,62 @@ test({
     ttfc.string().map(value => globalThis.Symbol(value)),
   typecheck: false,
 })
+// Typed array
+test({
+  arb:
+    // Int8Array<ArrayBufferLike>
+    ttfc.int8Array(),
+})
+test({
+  arb:
+    // Uint8Array<ArrayBufferLike>
+    ttfc.uint8Array(),
+})
+test({
+  arb:
+    // Uint8ClampedArray<ArrayBufferLike>
+    ttfc.uint8ClampedArray(),
+})
+test({
+  arb:
+    // Int16Array<ArrayBufferLike>
+    ttfc.int16Array(),
+})
+test({
+  arb:
+    // Uint16Array<ArrayBufferLike>
+    ttfc.uint16Array(),
+})
+test({
+  arb:
+    // Int32Array<ArrayBufferLike>
+    ttfc.int32Array(),
+})
+test({
+  arb:
+    // Uint32Array<ArrayBufferLike>
+    ttfc.uint32Array(),
+})
+test({
+  arb:
+    // BigInt64Array<ArrayBufferLike>
+    ttfc.bigInt64Array(),
+})
+test({
+  arb:
+    // BigUint64Array<ArrayBufferLike>
+    ttfc.bigUint64Array(),
+})
+test({
+  arb:
+    // Float32Array<ArrayBufferLike>
+    ttfc.float32Array(),
+})
+test({
+  arb:
+    // Float64Array<ArrayBufferLike>
+    ttfc.float64Array(),
+})
 // Array
 test({
   arb:

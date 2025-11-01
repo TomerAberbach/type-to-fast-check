@@ -4,10 +4,13 @@ import type {
   Arbitrary,
   ArrayArbitrary,
   AssignArbitrary,
+  BigIntArrayArbitrary,
   ConstantArbitrary,
   ConstantFromArbitrary,
   DictionaryArbitrary,
+  FloatArrayArbitrary,
   FuncArbitrary,
+  IntArrayArbitrary,
   MapStringArbitrary,
   MetaArbitrary,
   OneofArbitrary,
@@ -102,6 +105,12 @@ const reifyArbitraryInternal = (
       return mapStringArbitraryExpression(arbitrary, tieArbitraryNames)
     case `symbol`:
       return symbolArbitraryExpression(constraintsExpression)
+    case `intArray`:
+      return intArrayArbitraryExpression(arbitrary, constraintsExpression)
+    case `bigIntArray`:
+      return bigIntArrayArbitraryExpression(arbitrary, constraintsExpression)
+    case `floatArray`:
+      return floatArrayArbitraryExpression(arbitrary, constraintsExpression)
     case `tuple`:
       return tupleArbitraryExpression(arbitrary, tieArbitraryNames)
     case `array`:
@@ -323,6 +332,30 @@ const symbolArbitraryExpression = (
       ),
   )
 
+const intArrayArbitraryExpression = (
+  arbitrary: IntArrayArbitrary,
+  constraintsExpression: ts.Expression | undefined,
+) =>
+  fcCallExpression(
+    `${arbitrary.signed ? `` : `u`}int${arbitrary.bits}${
+      arbitrary.clamped ? `Clamped` : ``
+    }Array`,
+    [constraintsExpression],
+  )
+
+const bigIntArrayArbitraryExpression = (
+  arbitrary: BigIntArrayArbitrary,
+  constraintsExpression: ts.Expression | undefined,
+) =>
+  fcCallExpression(`big${arbitrary.signed ? `Int` : `Uint`}64Array`, [
+    constraintsExpression,
+  ])
+
+const floatArrayArbitraryExpression = (
+  arbitrary: FloatArrayArbitrary,
+  constraintsExpression: ts.Expression | undefined,
+) => fcCallExpression(`float${arbitrary.bits}Array`, [constraintsExpression])
+
 const tupleArbitraryExpression = (
   arbitrary: TupleArbitrary,
   tieArbitraryNames: Map<TieArbitrary, string>,
@@ -437,6 +470,9 @@ const isStringArbitrary = (arbitrary: Arbitrary): boolean => {
     case `double`:
     case `bigInt`:
     case `symbol`:
+    case `intArray`:
+    case `bigIntArray`:
+    case `floatArray`:
     case `tuple`:
     case `array`:
     case `record`:

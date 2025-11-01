@@ -4,11 +4,14 @@ import {
   arrayArbitrary,
   assignArbitrary,
   bigIntArbitrary,
+  bigIntArrayArbitrary,
   booleanArbitrary,
   constantArbitrary,
   dictionaryArbitrary,
   doubleArbitrary,
+  floatArrayArbitrary,
   funcArbitrary,
+  intArrayArbitrary,
   mapStringArbitrary,
   metaArbitrary,
   mutableArbitrary,
@@ -429,6 +432,39 @@ const getTupleElementNode = (
   return ts.isNamedTupleMember(element) ? element.type : element
 }
 
+const generateInt8ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 8, signed: true, clamped: false })
+
+const generateUint8ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 8, signed: false, clamped: false })
+
+const generateUint8ClampedArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 8, signed: false, clamped: true })
+
+const generateInt16ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 16, signed: true, clamped: false })
+
+const generateUint16ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 16, signed: false, clamped: false })
+
+const generateInt32ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 32, signed: true, clamped: false })
+
+const generateUint32ArrayArbitrary = () =>
+  intArrayArbitrary({ bits: 32, signed: false, clamped: false })
+
+const generateBigInt64ArrayArbitrary = () =>
+  bigIntArrayArbitrary({ signed: true })
+
+const generateBigUint64ArrayArbitrary = () =>
+  bigIntArrayArbitrary({ signed: false })
+
+const generateFloat16ArrayArbitrary = () => floatArrayArbitrary({ bits: 16 })
+
+const generateFloat32ArrayArbitrary = () => floatArrayArbitrary({ bits: 32 })
+
+const generateFloat64ArrayArbitrary = () => floatArrayArbitrary({ bits: 64 })
+
 const generateArrayArbitrary = (
   type: ts.TypeReference,
   node: ts.TypeNode,
@@ -663,6 +699,18 @@ const builtinTypeGenerators = new Map<
     typeChecker: ts.TypeChecker,
   ) => Arbitrary
 >([
+  [`Int8Array`, generateInt8ArrayArbitrary],
+  [`Uint8Array`, generateUint8ArrayArbitrary],
+  [`Uint8ClampedArray`, generateUint8ClampedArrayArbitrary],
+  [`Int16Array`, generateInt16ArrayArbitrary],
+  [`Uint16Array`, generateUint16ArrayArbitrary],
+  [`Int32Array`, generateInt32ArrayArbitrary],
+  [`Uint32Array`, generateUint32ArrayArbitrary],
+  [`BigInt64Array`, generateBigInt64ArrayArbitrary],
+  [`BigUint64Array`, generateBigUint64ArrayArbitrary],
+  [`Float16Array`, generateFloat16ArrayArbitrary],
+  [`Float32Array`, generateFloat32ArrayArbitrary],
+  [`Float64Array`, generateFloat64ArrayArbitrary],
   [`Array`, generateArrayArbitrary],
   [`ReadonlyArray`, generateArrayArbitrary],
   [`Function`, generateFunctionArbitrary],

@@ -104,6 +104,19 @@ test({ arb: typeToArb<symbol>() })
 const _symbol: unique symbol = Symbol('unique')
 test({ arb: typeToArb<typeof _symbol>(), typecheck: false })
 
+// Typed array
+test({ arb: typeToArb<Int8Array>() })
+test({ arb: typeToArb<Uint8Array>() })
+test({ arb: typeToArb<Uint8ClampedArray>() })
+test({ arb: typeToArb<Int16Array>() })
+test({ arb: typeToArb<Uint16Array>() })
+test({ arb: typeToArb<Int32Array>() })
+test({ arb: typeToArb<Uint32Array>() })
+test({ arb: typeToArb<BigInt64Array>() })
+test({ arb: typeToArb<BigUint64Array>() })
+test({ arb: typeToArb<Float32Array>() })
+test({ arb: typeToArb<Float64Array>() })
+
 // Array
 test({ arb: typeToArb<string[]>() })
 test({ arb: typeToArb<Array<string>>() })

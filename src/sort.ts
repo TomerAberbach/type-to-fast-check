@@ -2,10 +2,13 @@ import type {
   Arbitrary,
   ArrayArbitrary,
   AssignArbitrary,
+  BigIntArrayArbitrary,
   ConstantArbitrary,
   ConstantFromArbitrary,
   DictionaryArbitrary,
+  FloatArrayArbitrary,
   FuncArbitrary,
+  IntArrayArbitrary,
   MapStringArbitrary,
   OneofArbitrary,
   RecordArbitrary,
@@ -105,6 +108,22 @@ export const compareArbitraries = (
         arbitrary1.arbitrary,
         mapStringArbitrary2.arbitrary,
       )
+    }
+    case `intArray`: {
+      const intArrayArbitrary2 = arbitrary2 as IntArrayArbitrary
+      return (
+        compareConstants(arbitrary1.bits, intArrayArbitrary2.bits) ||
+        compareConstants(arbitrary1.signed, intArrayArbitrary2.signed) ||
+        compareConstants(arbitrary1.clamped, intArrayArbitrary2.clamped)
+      )
+    }
+    case `bigIntArray`: {
+      const bigIntArrayArbitrary2 = arbitrary2 as BigIntArrayArbitrary
+      return compareConstants(arbitrary1.signed, bigIntArrayArbitrary2.signed)
+    }
+    case `floatArray`: {
+      const floatArrayArbitrary2 = arbitrary2 as FloatArrayArbitrary
+      return compareConstants(arbitrary1.bits, floatArrayArbitrary2.bits)
     }
     case `tuple`: {
       const tupleArbitrary2 = arbitrary2 as TupleArbitrary
@@ -281,26 +300,32 @@ const arbitraryPriority = (arbitrary: Arbitrary): number => {
       return 9
     case `symbol`:
       return 10
-    case `tuple`:
+    case `intArray`:
       return 11
-    case `array`:
+    case `bigIntArray`:
       return 12
-    case `record`:
+    case `floatArray`:
       return 13
-    case `dictionary`:
+    case `tuple`:
       return 14
-    case `object`:
+    case `array`:
       return 15
-    case `func`:
+    case `record`:
       return 16
-    case `constantFrom`:
+    case `dictionary`:
       return 17
-    case `oneof`:
+    case `object`:
       return 18
-    case `assign`:
+    case `func`:
       return 19
-    case `anything`:
+    case `constantFrom`:
       return 20
+    case `oneof`:
+      return 21
+    case `assign`:
+      return 22
+    case `anything`:
+      return 23
   }
 }
 
